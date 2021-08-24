@@ -1,0 +1,33 @@
+---
+title: "Get started with datavar"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Get started with datavar}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Basic use
+
+```{r setup}
+library(Datavar)
+library(knitr)
+```
+
+The library *knitr* is loaded for the presentation of the tables.
+
+The basical use of datavar is to describe your dataset with default options:
+
+```{r}
+datavar_cars <- create_datavar(mtcars)
+table_descr <- descr(mtcars, datavar = datavar_cars)
+kable(table_descr)
+```
+

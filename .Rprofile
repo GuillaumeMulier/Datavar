@@ -1,8 +1,8 @@
 options(encoding = "utf8")
-cat("\n\n\n")
+cat("\n")
 message("Hi!")
 message("Why not a friends' quote to begin the work ?")
-cat("\n\n\n")
+cat("\n")
 
 if (interactive() & require("centralperk", quietly = TRUE)) {
   message(centralperk())
