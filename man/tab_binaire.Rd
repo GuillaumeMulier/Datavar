@@ -45,7 +45,7 @@ tab_binaire(
 \item{simplif}{Not usefull, if TRUE will delete unused column 'Pvalue'.}
 }
 \description{
-Description of binary variables.
+Description of binary variables
 }
 \details{
 A function to describe binary variables with count and percentage (+ binomial confidence interval if supplied).
@@ -58,4 +58,7 @@ tab_binaire(mtcars, am, vs)
 tab_binaire(mtcars, am, vs,
             nomcateg = "0", label = "Automatic transmission",
             test = "fisher")
+}
+\seealso{
+\code{\link{descr}}
 }

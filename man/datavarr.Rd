@@ -8,7 +8,7 @@
 A data.frame with 11 rows and 10 variables:
 \describe{
 \item{var}{The name of each variable. All described variables should be in the datavar.}
-\item{type}{Type of variable : quanti for a quantitative variable; quali for a categorial variable with more than 2 items; and binaire for a binary variable.}
+\item{type}{Type of variable : quanti for a quantitative variable; quali for a categorial variable with more than 2 items; and binary for a binary variable.}
 \item{coefbin}{For categorical and binary variables, TRUE if you want to display the confidence interval of the proportion computed with binomial distribution.}
 \item{prec}{Number of decimals.}
 \item{nomcateg}{For binary variables, the name of the class in the data to be displayed.}

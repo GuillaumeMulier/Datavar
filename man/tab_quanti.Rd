@@ -29,7 +29,8 @@ tab_quanti(
 
 \item{chif_pval}{Number of decimals for the Pvalue if needed.}
 
-\item{mode}{String to indicate what statistics to display. If unspecified, by default give median, interquartile and range.}
+\item{mode}{String to indicate what statistics to display. If unspecified, by default give median, interquartile and range ("med" for
+median, "moy" for mean, "sd" for standard deviation, "iq" for interquartile and "rg" fo range).}
 
 \item{test}{String giving the test to compare the statistic between the 2 groups if needed. None if unspecified.}
 
@@ -42,7 +43,7 @@ tab_quanti(
 \item{simplif}{Not usefull, if TRUE will delete unused column 'Pvalue'.}
 }
 \description{
-Description of quantitative variables.
+Description of quantitative variables
 }
 \details{
 A function to describe quantitative variables with mean, median, standard deviation, interquartile and range.
@@ -55,4 +56,7 @@ tab_quanti(data = mtcars, x = mpg, y = am, prec = 1)
 tab_quanti(data = mtcars, x = mpg, y = am, prec = 1,
            nomvariable = "Miles per gallon",
            test = "stud", chif_pval = 3)
+}
+\seealso{
+\code{\link{descr}}
 }

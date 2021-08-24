@@ -45,7 +45,7 @@ tab_quali(
 \item{simplif}{Not usefull, if TRUE will delete unused column 'Pvalue'.}
 }
 \description{
-Description of categorical variables.
+Description of categorical variables
 }
 \details{
 A function to describe categorical variables with count and percentage (+ binomial confidence interval if supplied).
@@ -58,4 +58,7 @@ tab_quali(mtcars, cyl, am)
 tab_quali(mtcars, cyl, am,
           nomvariable = "Number of cylinders",
           test = "chisq", chif_pval = 3)
+}
+\seealso{
+\code{\link{descr}}
 }
