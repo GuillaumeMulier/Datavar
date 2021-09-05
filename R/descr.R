@@ -1,3 +1,5 @@
+#' descr_var
+#'
 #' @param data Data.frame of the data.
 #' @param ligne_datavar The line in datavar of the variable to describe.
 #' @param y The variable used to cross.
@@ -11,7 +13,7 @@ descr_var <- function(data,
                       nomcol,
                       langue) {
 
-  x <- as.character(ligne_datavar[1])
+  x <- as.character(ligne_datavar[[1]])
   crois <- tryCatch(
     expr = {y <- rlang::expr_text(rlang::ensym(y))},
     error = function(e) NULL
@@ -19,45 +21,45 @@ descr_var <- function(data,
 
   if (is.null(crois)) {
 
-    if (ligne_datavar[2] == "quanti") {
+    if (ligne_datavar[[2]] == "quanti") {
 
       tableau <- tab_quanti(data = data,
                             x = !!x,
-                            prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                            chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
-                            mode = ifelse(!is.na(ligne_datavar[9]), as.character(ligne_datavar[9]), "mediqrg"),
-                            test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
+                            prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                            chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
+                            mode = ifelse(!is.na(ligne_datavar[[9]]), as.character(ligne_datavar[[9]]), "mediqrg"),
+                            test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
                             langue = langue,
                             nomcol = nomcol,
-                            nomvariable = ifelse(!is.na(ligne_datavar[7]), as.character(ligne_datavar[7]), NULL),
+                            nomvariable = if (!is.na(ligne_datavar[[7]])) {as.character(ligne_datavar[[7]])} else {NULL},
                             simplif = FALSE)
 
-    } else if (ligne_datavar[2] == "binary") {
+    } else if (ligne_datavar[[2]] == "binary") {
 
       tableau <- tab_binaire(data = data,
                              x = !!x,
-                             prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                             coefbin = ifelse(!is.na(ligne_datavar[3]), as.logical(ligne_datavar[3]), FALSE),
-                             chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
-                             test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
+                             prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                             coefbin = ifelse(!is.na(ligne_datavar[[3]]), as.logical(ligne_datavar[[3]]), FALSE),
+                             chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
+                             test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
                              langue = langue,
                              nomcol = nomcol,
-                             nomcateg = ifelse(!is.na(ligne_datavar[5]), as.character(ligne_datavar[5]), NULL),
-                             label = ifelse(!is.na(ligne_datavar[6]), as.character(ligne_datavar[6]), NULL),
+                             nomcateg = if (!is.na(ligne_datavar[[5]])) {as.character(ligne_datavar[[5]])} else {NULL},
+                             label = if (!is.na(ligne_datavar[[6]])) {as.character(ligne_datavar[[6]])} else {NULL},
                              simplif = FALSE)
 
-    } else if (ligne_datavar[2] == "quali") {
+    } else if (ligne_datavar[[2]] == "quali") {
 
       tableau <- tab_quali(data = data,
                            x = !!x,
-                           prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                           coefbin = ifelse(!is.na(ligne_datavar[3]), as.logical(ligne_datavar[3]), FALSE),
-                           test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
-                           chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
+                           prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                           coefbin = ifelse(!is.na(ligne_datavar[[3]]), as.logical(ligne_datavar[[3]]), FALSE),
+                           test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
+                           chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
                            langue = langue,
                            nomcol = nomcol,
-                           ordonnee = ifelse(!is.na(ligne_datavar[8]), as.logical(ligne_datavar[8]), FALSE),
-                           nomvariable = ifelse(!is.na(ligne_datavar[7]), as.character(ligne_datavar[7]), NULL),
+                           ordonnee = ifelse(!is.na(ligne_datavar[[8]]), as.logical(ligne_datavar[[8]]), FALSE),
+                           nomvariable = if (!is.na(ligne_datavar[[7]])) {as.character(ligne_datavar[[7]])} else {NULL},
                            simplif = FALSE)
 
     }
@@ -66,48 +68,48 @@ descr_var <- function(data,
 
     y <- rlang::expr_text(rlang::ensym(y))
 
-    if (ligne_datavar[2] == "quanti") {
+    if (ligne_datavar[[2]] == "quanti") {
 
       tableau <- tab_quanti(data = data,
                             x = !!x,
                             y = !!y,
-                            prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                            chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
-                            mode = ifelse(!is.na(ligne_datavar[9]), as.character(ligne_datavar[9]), "mediqrg"),
-                            test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
+                            prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                            chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
+                            mode = ifelse(!is.na(ligne_datavar[[9]]), as.character(ligne_datavar[[9]]), "mediqrg"),
+                            test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
                             langue = langue,
                             nomcol = nomcol,
-                            nomvariable = ifelse(!is.na(ligne_datavar[7]), as.character(ligne_datavar[7]), NULL),
+                            nomvariable = if (!is.na(ligne_datavar[[7]])) {as.character(ligne_datavar[[7]])} else {NULL},
                             simplif = FALSE)
 
-    } else if (ligne_datavar[2] == "binary") {
+    } else if (ligne_datavar[[2]] == "binary") {
 
       tableau <- tab_binaire(data = data,
                              x = !!x,
                              y = !!y,
-                             prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                             coefbin = ifelse(!is.na(ligne_datavar[3]), as.logical(ligne_datavar[3]), FALSE),
-                             chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
-                             test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
+                             prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                             coefbin = ifelse(!is.na(ligne_datavar[[3]]), as.logical(ligne_datavar[[3]]), FALSE),
+                             chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
+                             test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
                              langue = langue,
                              nomcol = nomcol,
-                             nomcateg = ifelse(!is.na(ligne_datavar[5]), as.character(ligne_datavar[5]), NULL),
-                             label = ifelse(!is.na(ligne_datavar[6]), as.character(ligne_datavar[6]), NULL),
+                             nomcateg = if (!is.na(ligne_datavar[[5]])) {as.character(ligne_datavar[[5]])} else {NULL},
+                             label = if (!is.na(ligne_datavar[[6]])) {as.character(ligne_datavar[[6]])} else {NULL},
                              simplif = FALSE)
 
-    } else if (ligne_datavar[2] == "quali") {
+    } else if (ligne_datavar[[2]] == "quali") {
 
       tableau <- tab_quali(data = data,
                            x = !!x,
                            y = !!y,
-                           prec = ifelse(!is.na(ligne_datavar[4]), as.numeric(ligne_datavar[4]), 0),
-                           coefbin = ifelse(!is.na(ligne_datavar[3]), as.logical(ligne_datavar[3]), FALSE),
-                           test = ifelse(!is.na(ligne_datavar[10]), as.character(ligne_datavar[10]), "none"),
-                           chif_pval = ifelse(!is.na(ligne_datavar[11]), as.numeric(ligne_datavar[11]), 2),
+                           prec = ifelse(!is.na(ligne_datavar[[4]]), as.numeric(ligne_datavar[[4]]), 0),
+                           coefbin = ifelse(!is.na(ligne_datavar[[3]]), as.logical(ligne_datavar[[3]]), FALSE),
+                           test = ifelse(!is.na(ligne_datavar[[10]]), as.character(ligne_datavar[[10]]), "none"),
+                           chif_pval = ifelse(!is.na(ligne_datavar[[11]]), as.numeric(ligne_datavar[[11]]), 2),
                            langue = langue,
                            nomcol = nomcol,
-                           ordonnee = ifelse(!is.na(ligne_datavar[8]), as.logical(ligne_datavar[8]), FALSE),
-                           nomvariable = ifelse(!is.na(ligne_datavar[7]), as.character(ligne_datavar[7]), NULL),
+                           ordonnee = ifelse(!is.na(ligne_datavar[[8]]), as.logical(ligne_datavar[[8]]), FALSE),
+                           nomvariable = if (!is.na(ligne_datavar[[7]])) {as.character(ligne_datavar[[7]])} else {NULL},
                            simplif = FALSE)
 
     }
@@ -169,6 +171,9 @@ descr <- function(data,
     error = function(e) NULL
   )
 
+  # Retrait de la variable à croiser dans le cas d'une description croisée
+  if (!is.null(crois)) listevar <- listevar[listevar != crois]
+
   # datavar <- verif_datavar(datavar)
   if (any(datavar$type[datavar$var %in% listevar] %nin% c("quanti", "quali", "binary")))
     stop("Second column of datavar should only be comprised of \"quanti\", \"quali\" and \"binary\".")
@@ -202,7 +207,7 @@ descr <- function(data,
   if (any(datavar[["coefbin"]][datavar$type %in% c("binary", "quali")])) {
     foot <- paste0("n(%[", ifelse(langue == 'fr', 'IC95%', 'CI95%'), "]), ")
   } else {
-    foot <- glue("n(%), ")
+    foot <- paste0("n(%), ")
   }
   if (any(grepl("med", datavar[["mode"]][datavar$type == "quanti"]))) {
     foot <- ifelse(langue == "fr",

@@ -6,6 +6,8 @@
 #'
 #' You can also use it to cross it with a categorial variable and perform a comparison test (chisq test).
 #'
+#' The condition to perform the Chi-square test is that no more than 20% of the expected sizes are below 5 (Bouyer, 1996, p. 254).
+#'
 #' @param data The dataset that contains the variables.
 #' @param x The categorical variable to describe. Should be the name without "".
 #' @param y The qualitative variable to perform the bivariate description. Should be the name without "". If unspecified, univariate description.
@@ -23,7 +25,11 @@
 #'
 #' @export
 #'
+#' @encoding UTF-8
+#'
 #' @seealso \code{\link{descr}}
+#'
+#' @references Bouyer, J. (1996). \emph{Méthodes statistiques: médecine-biologie}. Estem.
 #'
 #' @examples
 #' tab_quali(mtcars, cyl)
@@ -116,7 +122,7 @@ tab_quali <- function(data,
     tot_nona       <- tapply(varquali, varcroise, length)
     tot_na         <- tapply(varquali, varcroise, function(x) sum(is.na(x)))
     statist <- purrr::map_dfc(.x = colnames(tab_crois) %>%
-                                rlang::set_names(paste0(rlang::enquo(y), "_", colnames(tab_crois))),
+                                rlang::set_names(paste0(rlang::as_label(rlang::enquo(y)), "_", colnames(tab_crois))),
                               .f = function(x) {
                                 donnees <- tab_crois[, x]
                                 prop <- tab_crois_prop[, x]
@@ -172,7 +178,7 @@ tab_quali <- function(data,
     # S'il faut faire un test de comparaison (Fisher ou Chi2)
     if (test != "none") {
       if (length(chif_pval) != 1 || !is.numeric(chif_pval) || chif_pval %% 1 != 0) stop("\"chif_pval\" should be a whole positive number.", call. = FALSE)
-      if (suppressWarnings(mean(chisq.test(varquali, varcroise)$expected >= 5) >= .2)) {
+      if (suppressWarnings(mean(chisq.test(varquali, varcroise)$expected <= 5) <= .2)) {
         suppressWarnings(testval <- arrondi_pv(chisq.test(varquali, varcroise, correct = FALSE)$p.value, chif_pval))
         } else {
           testval <- "Faire des regroupements"

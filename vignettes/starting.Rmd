@@ -26,8 +26,12 @@ The library *knitr* is loaded for the presentation of the tables.
 The basical use of datavar is to describe your dataset with default options:
 
 ```{r}
+# To set the default language to English (French by default)
+formals(descr)$langue <- "eng"
+
+# Basic description
 datavar_cars <- create_datavar(mtcars)
 table_descr <- descr(mtcars, datavar = datavar_cars)
-kable(table_descr)
+kable(table_descr, row.names = FALSE)
 ```
 

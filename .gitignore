@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.Rprofile
 Datavar.Rproj
 inst/doc
+datavar.csv
+R/visu_data.R
