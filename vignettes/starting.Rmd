@@ -21,7 +21,7 @@ library(Datavar)
 library(knitr)
 ```
 
-The library *knitr* is loaded for the presentation of the tables.
+The library *knitr* is loaded for the presentation of the tables. Package *flextable* can also be used with the foot attribute of the table to create a footnote indicating how the variable are described. For now, I use kable but I plan on using *flextable*.
 
 The basical use of datavar is to describe your dataset with default options:
 
@@ -33,5 +33,12 @@ formals(descr)$langue <- "eng"
 datavar_cars <- create_datavar(mtcars)
 table_descr <- descr(mtcars, datavar = datavar_cars)
 kable(table_descr, row.names = FALSE)
+```
+
+This is the basical use for the description, but we can also cross with a variable like the transmission.
+
+```{r}
+table_descr_am <- descr(mtcars, y = am, datavar = datavar_cars)
+kable(table_descr_am)
 ```
 

@@ -7,6 +7,8 @@
 #' @param langue Language.
 #'
 #' @importFrom rlang !!
+#'
+#' @export
 descr_var <- function(data,
                       ligne_datavar,
                       y,

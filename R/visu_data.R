@@ -17,7 +17,7 @@
 visu_data <- function(data, datavar, langue = "fr") {
 
   langue <- verif_langue(langue)
-  datavar <- verif_datavar(datavar)
+  # datavar <- verif_datavar(datavar)
 
   data_set <- rlang::enexpr(data)
 
