@@ -61,7 +61,7 @@ verif_datavar <- function(x) {
   if (!is.character(x$var) || !is.character(x$type) || !is.character(x$mode) || !is.character(x$test) || !is.character(x$label) || !is.character(x$nomvariable))
     stop("Columns \"var\", \"type\", \"mode\", \"test\", \"label\" and \"nomvariable\" should contain characters.", call. = FALSE)
   if (!is.logical(x$coefbin) || !is.logical(x$ordonnee)) stop("Columns \"coefbin\" and \"ordonnee\" should be booleans.", call. = FALSE)
-  if (!is.numeric(prec) || !is.numeric(chif_pval)) stop("Columns \"prec\" and \"chif_pval\" should be numerics.", call. = FALSE)
+  if (!is.numeric(x$prec) || !is.numeric(x$chif_pval)) stop("Columns \"prec\" and \"chif_pval\" should be numerics.", call. = FALSE)
 
   return(x)
 
