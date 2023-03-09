@@ -1,5 +1,22 @@
 #' Inverse of %in%
-'%nin%' <- function(x, y) {match(x, y, nomatch = 0) <= 0}
+'%nin%' <- function(x, y) {match(x, y, nomatch = 0L) <= 0L}
+
+
+#' Formatting PValue
+FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<", rep("0", S - 1, "1")) else sprintf(paste0("%.", S, "f"), PVal)
+
+
+#' Get the 1st quartile
+Q1 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.25, na.rm = na.rm))
+
+
+#' Get the 3rd quartile
+Q3 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.75, na.rm = na.rm))
+
+
+# ------------------------------------------------ #
+# Then, older functions for old version of package #
+# ------------------------------------------------ #
 
 
 #' Check the statistical test
@@ -84,13 +101,3 @@ arrondi_pv <- function(x, nb_chiffre) {
 }
 
 
-#' Get the 1st quartile
-Q1 <- function(x, na.rm = TRUE) {
-  as.numeric(quantile(x, probs = 0.25, na.rm = na.rm))
-}
-
-
-#' Get the 3rd quartile
-Q3 <- function(x, na.rm = TRUE) {
-  as.numeric(quantile(x, probs = 0.75, na.rm = na.rm))
-}

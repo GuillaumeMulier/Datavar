@@ -4,16 +4,16 @@
 #'
 #' A function to describe binary variables with count and percentage (+ binomial confidence interval if supplied).
 #'
-#' You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test). For now no tests are performed with crossing with a variable that has more than 2 classes.
+#' You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test).
 #'
 #' @param data The dataset that contains the variables.
 #' @param x The binary variable to describe.
 #' @param y The qualitative variable to perform the bivariate description. If unspecified, univariate description.
-#' @param prec Number of decimals for the percentages.
+#' @param Prec Number of decimals for the percentages.
 #' @param coefbin If TRUE displays the binomial confidence intervals.
 #' @param chif_pval Number of decimals for the Pvalue if test is performed.
 #' @param test String giving the name of the comparison test performed.
-#' @param langue "fr" for french and "eng" for english. For the display in the table.
+#' @param Langue "fr" for french and "eng" for english. For the display in the table.
 #' @param nomcol Vector of strings to name each column of the output. Automatic display if unspecified.
 #' @param nomcateg Sting giving the name of the class that you want to display in the table.
 #' @param label The label you want to display for nomcateg.
@@ -32,17 +32,16 @@
 tab_binaire <- function(data,
                         x,
                         y = NULL,
-                        prec = 0,
+                        Prec = 0,
                         coefbin = FALSE,
                         chif_pval = 2,
                         test = "none",
-                        langue = "eng",
+                        Langue = "eng",
                         nomcol = NULL,
                         nomcateg = NULL,
                         label = NULL,
                         simplif = TRUE) {
 
-  x <- rlang::sym(rlang::enexpr(x))
   x <- rlang::enquo(x)
   varbinaire <- rlang::eval_tidy(x, data = data)
 
@@ -52,10 +51,12 @@ tab_binaire <- function(data,
   )
 
   # Vérifications avant de faire tourner la fonction
-  langue <- verif_langue(langue)
-  if (sum(!is.na(varbinaire)) == 0) stop(paste0("Variable ", rlang::quo_name(x), " has 0 non missing values."), call. = FALSE)
-  if (length(prec) != 1 || !is.numeric(prec) || prec %% 1 != 0 || prec < 0) stop("\"prec\" should be a whole positive number.", call. = FALSE)
-  if (length(unique(varbinaire[!is.na(varbinaire)])) > 2) stop(paste0("The variable to describe \"", rlang::quo_name(x), "\" isn't a binary variable."), call. = FALSE)
+  Langue <- VerifArgs(Langue)
+  if (sum(!is.na(varbinaire)) == 0)
+    stop(paste0("Variable ", rlang::as_label(x), " has 0 non missing values."), call. = FALSE)
+  Prec <- VerifArgs(Prec)
+  if (length(unique(varbinaire[!is.na(varbinaire)])) > 2)
+    stop(paste0("The variable to describe \"", rlang::quo_name(x), "\" isn't a binary variable."), call. = FALSE)
   if (length(unique(varbinaire[!is.na(varbinaire)])) == 1) message(paste0("The variable to describe \"", rlang::quo_name(x), "\" only have 1 class."))
   if (!is.null(nomcateg) && nomcateg == "") nomcateg <- NULL
   if (!is.null(label) && is.null(nomcateg)) {
@@ -76,7 +77,7 @@ tab_binaire <- function(data,
   }
   if (is.null(label)) label <- paste0(rlang::quo_name(x), ":", nomcateg)
 
-  fprec <- paste0("%.", prec, "f")
+  fprec <- paste0("%.", Prec, "f")
 
   if (is.null(crois)) { # Description univariée
 
@@ -92,15 +93,15 @@ tab_binaire <- function(data,
     if (coefbin) {statist <- paste0(effectifs, "(", pourcents, "%[", icinf, "%;", icsup, "%])")} else {statist <- paste0(effectifs, "(", pourcents, "%)")}
 
     # Création du tableau de résultats
-    nomtable <- data.frame(var = c("Total", paste0("** ", label), ifelse(langue == "fr", "** Manquants", ifelse(langue == "eng", "** Missings", "** ..."))),
+    nomtable <- data.frame(var = c("Total", paste0("** ", label), ifelse(Langue == "fr", "** Manquants", ifelse(Langue == "eng", "** Missings", "** ..."))),
                            eff = c(length(varbinaire), paste0("n=", sum(!is.na(varbinaire))), ""),
                            stats = c("", statist, sum(is.na(varbinaire))),
                            stringsAsFactors = FALSE)
 
     # Noms des colonnes
     if (is.null(nomcol)) {
-      if (langue == "fr") {colnames(nomtable) <- c("Variable", "Effectif", "Statistiques")}
-      else if (langue == "eng") {colnames(nomtable) <- c("Variable", "Count", "Statistics")}
+      if (Langue == "fr") {colnames(nomtable) <- c("Variable", "Effectif", "Statistiques")}
+      else if (Langue == "eng") {colnames(nomtable) <- c("Variable", "Count", "Statistics")}
     } else {
       if (length(nomcol) != ncol(nomtable)) stop(paste0("'nomcol' argument isn't of length", ncol(nomtable), "."), call. = FALSE)
       colnames(nomtable) <- nomcol
@@ -153,12 +154,12 @@ tab_binaire <- function(data,
     if (!is.null(nomcol)) {
       colnames(nomtable) <- nomcol
     } else {
-      if (langue == "fr") {
+      if (Langue == "fr") {
         colnames(nomtable) <- c("Variable",
                                 paste0(rep(c("Effectif", "Statistiques"), length.out = ncol(nomtable) - 2),
                                        " (", rlang::quo_name(y), ":", rep(names(table(varcroise[!is.na(varcroise)])), each = 2), ")"),
                                 "Pvalue")
-      } else if (langue == "eng") {
+      } else if (Langue == "eng") {
         colnames(nomtable) <- c("Variable",
                                 paste0(rep(c("Count", "Statistics"), length.out = ncol(nomtable) - 2),
                                        " (", rlang::quo_name(y), ":", rep(names(table(varcroise[!is.na(varcroise)])), each = 2), ")"),
@@ -171,7 +172,7 @@ tab_binaire <- function(data,
     nomtable[1, (2 * seq_len(nb_classes))] <- tot_nona
     nomtable[1, 1] <- "Total"
     nomtable[3, (2 * seq_len(nb_classes)) + 1] <- tot_na
-    nomtable[3, 1] <- ifelse(langue == "fr", "** Manquants", ifelse(langue == "eng", "** Missings", "** ..."))
+    nomtable[3, 1] <- ifelse(Langue == "fr", "** Manquants", ifelse(Langue == "eng", "** Missings", "** ..."))
     nomtable[2, (2 * seq_len(nb_classes))] <- paste0("n=", tab_tot)
     if (coefbin) {
       nomtable[2, (2 * seq_len(nb_classes)) + 1] <- paste0(tab, "(", tab_prop, "%[", icinf, "%;", icsup, "%])")
