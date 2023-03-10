@@ -38,18 +38,20 @@
 #'           nomvariable = "Number of cylinders",
 #'           test = "chisq", chif_pval = 3)
 TabQuali <- function(.Data,
-                      x,
-                      y = NULL,
+                     x,
+                     y = NULL,
                      Langue = "eng",
-                      Prec = 0,
+                     Prec = 0,
                      ConfInter = c("none", "normal", "exact", "jeffreys"),
                      ConfLevel = .95,
-                      test = "none",
-                      chif_pval = 2,
-                      nomcol = NULL,
-                      ordonnee = FALSE,
-                      nomvariable = NULL,
-                      simplif = TRUE) {
+                     PMissing = NULL,
+                     Test = "none",
+                     ChifPval = 2,
+                     NomCol = NULL,
+                     Ordonnee = FALSE,
+                     Grapher = FALSE,
+                     NomVariable = NULL,
+                     simplif = TRUE) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
   x <- rlang::enexpr(x)
@@ -57,144 +59,150 @@ TabQuali <- function(.Data,
   y <- rlang::enexpr(y)
 
   # Verifications
+  stopifnot(is.logical(Ordonnee), length(Ordonnee) == 1, is.logical(Grahper), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec)
   ConfInter <- VerifArgs(ConfInter)
   ConfLevel <- VerifArgs(ConfLevel)
-  VarBinaire <- VerifArgs(VarBinaire, NomCateg, x)
-  NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
-  if (sum(!is.na(varquali)) == 0) stop(paste0("Variable ", cli::style_underline(cli::bg_br_red(cli::col_br_white(rlang::quo_name(x)))), " has 0 non missing values."), call. = FALSE)
-  if (length(prec) != 1 || !is.numeric(prec) || prec %% 1 != 0 || prec < 0) stop("\"prec\" should be a whole positive number.", call. = FALSE)
-  if (length(unique(varquali[!is.na(varquali)])) == 1) message(paste0("The variable to describe \"", rlang::quo_name(x), "\" only have 1 class."))
-  if (is.null(nomvariable)) nomvariable <- paste0("- ", rlang::quo_name(x), " -")
+  VarQuali <- VerifArgs(VarQuali, Ordonnee)
+  NomVariable <- VerifArgs(NomVariable, x)
+  PMissing <- VerifArgs(PMissing)
 
-  fprec <- paste0("%.", prec, "f")
+  if (is.null(crois)) { # Univariate description
 
-  if (is.null(crois)) { # Description univariée
+    # Store statistics
+    X <- table(VarQuali, useNA = "no")
+    N <- sum(X)
+    M <- if (is.null(PMissing)) paste0(sum(is.na(VarQuali))) else sprintf(paste0("%i(%.", PMissing, "f%%)"), sum(is.na(VarQuali)), sum(is.na(VarQuali)) / length(VarQuali))
+    Pourcent <- list(fmt = if (ConfInter == "none") paste0("%i/%i (", Prec, "%%)") else paste0("%i/%i (", Prec, "%%[", Prec, ";", Prec, "])"),
+                     X,
+                     N,
+                     100 * X / N)
+    if (ConfInter == "normal") {
+      Pourcent <- append(Pourcent,
+                         list(qnorm((1 - ConfLevel) / 2,
+                                    mean = X / N,
+                                    sd = sqrt((X / N) * (1 - X / N) / N))))
+      Pourcent <- append(Pourcent,
+                         list(qnorm((1 + ConfLevel) / 2,
+                                    mean = X / N,
+                                    sd = sqrt((X / N) * (1 - X / N) / N))))
+      Pourcent[[5]] <- 100 * pmax(Pourcent[[5]], 0)
+      Pourcent[[6]] <- 100 * pmin(Pourcent[[6]], 1)
+    } else if (ConfInter == "exact") {
+      Pourcent <- append(Pourcent, list(
+        100 * qbeta((1 - ConfLevel) / 2, X, N - X + 1),
+        100 * qbeta((1 + ConfLevel) / 2, X + 1, N - X)))
+    } else if (ConfInter == "jeffreys") {
+      Pourcent <- append(Pourcent, list(
+        100 * qbeta((1 - ConfLevel) / 2, X + .5, N - X + .5),
+        100 * qbeta((1 + ConfLevel) / 2, X + .5, N - X + .5)))
+    }
+    Pourcent <- do.call("sprintf", Pourcent)
 
-    # Stockage des pourcentages et des effectifs
-    effectifs <- table(varquali)
-    pourcents <- sprintf(fprec, prop.table(effectifs, margin = NULL) * 100)
-    icinf <- purrr::map_chr(.x = as.numeric(effectifs),
-                            .f = ~ sprintf(fprec, binom.test(.x, sum(!is.na(varquali)))$conf.int[1] * 100))
-    icsup <- purrr::map_chr(.x = as.numeric(effectifs),
-                            .f = ~ sprintf(fprec, binom.test(.x, sum(!is.na(varquali)))$conf.int[2] * 100))
-    if (coefbin) {statist <- paste0(effectifs, "(", pourcents, "%[", icinf, "%;", icsup, "%])")} else {statist <- paste0(effectifs, "(", pourcents, "%)")}
+    # Table of results
+    Tableau <- data.frame(var = paste0(NomVariable, " (n, %)"),
+                          eff = c(paste0("  ", levels(VarQuali), " (n, %)"),
+                                  ifelse(Langue == "fr", "    Manquants", ifelse(Langue == "eng", "    Missings", "    ..."))),
+                          stats = c(Pourcent, M),
+                          stringsAsFactors = FALSE)
+    if (Grapher) Tableau$graphes <- c(lapply(levels(VarQuali), \(x) GGBar(as.numeric(VarQuali == x), NULL, Prec)), "")
 
-    # Création du tableau de résultats
-    nomtable <- data.frame(var = c("Total", nomvariable, paste0("** ", names(effectifs)), ifelse(langue == "fr", "** Manquants", ifelse(langue == "eng", "** Missings", "** ..."))),
-                           eff = c(length(varquali), paste0("n=", sum(!is.na(varquali))), rep("", length(effectifs) + 1)),
-                           stats = c("", "", statist, sum(is.na(varquali))),
-                           stringsAsFactors = FALSE)
-
-    # Noms des colonnes
-    if (is.null(nomcol)) {
-      if (langue == "fr") {colnames(nomtable) <- c("Variable", "Effectif", "Statistiques")}
-      else if (langue == "eng") {colnames(nomtable) <- c("Variable", "Count", "Statistics")}
+    # Name of columns
+    if (is.null(NomCol)) {
+      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
+      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
     } else {
-      if (length(nomcol) != ncol(nomtable)) stop(paste0("\"nomcol\" argument isn't of length", ncol(nomtable), "."), call. = FALSE)
-      colnames(nomtable) <- nomcol
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), "."), call. = FALSE)
+      colnames(Tableau) <- NomCol
     }
 
-    # Si ordonnee est mis FALSE, va réarranger par effectif décroissant (valeur par défaut)
-    if (!ordonnee) {
-      nomtable[(3:(nrow(nomtable) - 1)), ] <- nomtable[order(as.numeric(gsub("^(\\d+)\\(.*$", "\\1", nomtable[(3:(nrow(nomtable) - 1)), 3])), decreasing = TRUE) + 2, ]
-    }
+  } else { # Multivariate description
 
-  } else { # Description bivariée
+    VarCroise <- rlang::eval_tidy(y, data = .Data)
+    VarQuali <- VarBinaire[!is.na(VarCroise)]
+    VarCroise <- VarCroise[!is.na(VarCroise)]
+    NClasses <- length(unique(VarCroise))
 
-    y <- rlang::sym(rlang::enexpr(y))
-    y <- rlang::enquo(y)
-    varcroise <- rlang::eval_tidy(y, data = .Data)
+    # Verifications on statistical test
+    Test <- VerifTest(Test, "quali", NClasses, VarQuali, y, x)
+    ChifPval <- VerifArgs(ChifPval)
 
-    # Vérifications supplémentaires
-    test <- verif_test(test, type_var = "quali")
-    if (length(unique(varcroise[!is.na(varcroise)])) < 2) stop("There must be at least 2 classes to perform a crossed description.", call. = FALSE)
-    if (length(unique(varcroise[!is.na(varcroise)])) > 2) message("There are more than 2 classes. Some tests can be inappropriate.")
-    if (!is.null(nomcol) & length(nomcol) != 2 * (length(unique(varcroise[!is.na(varcroise)])) + 1)) stop(paste0("\"nomcol\" must be a vector of length ", 2 * (length(unique(varcroise[!is.na(varcroise)])) + 1), "."), call. = FALSE)
-    if (test != "none" & length(unique(varquali[!is.na(varquali)])) == 1) {
-      stop(paste0("Variable \"", rlang::enquo(y), "\" with only 1 class, no feasable test.\nChange to test = \"none\"."), call. = FALSE)
-    }
-
-    # Stockage des pourcentages et des effectifs
-    tab_crois      <- table(varquali, varcroise)
-    tab            <- table(varquali)
-    tab_tot        <- apply(tab_crois, 2, sum)
-    tab_crois_prop <- prop.table(tab_crois, 2)
-    tot_nona       <- tapply(varquali, varcroise, length)
-    tot_na         <- tapply(varquali, varcroise, function(x) sum(is.na(x)))
-    statist <- purrr::map_dfc(.x = colnames(tab_crois) %>%
-                                rlang::set_names(paste0(rlang::as_label(rlang::enquo(y)), "_", colnames(tab_crois))),
-                              .f = function(x) {
-                                donnees <- tab_crois[, x]
-                                prop <- tab_crois_prop[, x]
-                                donnees_tot <- tab_tot[x]
-                                purrr::map2_chr(donnees, prop,
-                                                ~ if (coefbin) {
-                                                  if (donnees_tot != 0) {
-                                                    paste0(.x, "(", sprintf(fprec, 100 * .y), "%[",
-                                                           sprintf(fprec, binom.test(.x, donnees_tot)$conf.int[1] * 100),
-                                                           "%;", sprintf(fprec, binom.test(.x, donnees_tot)$conf.int[2] * 100), "%])")
-                                                  } else {
-                                                    paste0("##")
-                                                  }
-                                                } else {
-                                                  paste0(.x, "(", sprintf(fprec, 100 * .y), "%)")
-                                                })
-                              })
-
-    # Création du tableau vide qui recevra les résultats
-    nomtable <- data.frame(matrix("", ncol = (ncol(tab_crois) + 1) * 2, nrow = length(unique(varquali[!is.na(varquali)])) + 3), stringsAsFactors = FALSE)
-    if (!is.null(nomcol)) {
-      colnames(nomtable) <- nomcol
+    # Statistics
+    X <- as.data.frame(table(VarQuali, VarCroise, useNA = "no")) # In fact, as VarQuali is transformed as a factor, no need to track for categories as they are ordered with levels
+    N <- tapply(VarBinaire, VarCroise, \(x) sum(!is.na(x), na.rm = TRUE))
+    M <- if (is.null(PMissing)) {
+      tapply(VarBinaire, VarCroise, \(x) paste0(sum(is.na(x), na.rm = TRUE)))
     } else {
-      if (langue == "fr") {
-        colnames(nomtable) <- c("Variable",
-                                paste0(rep(c("Effectif", "Statistiques"), length.out = ncol(nomtable) - 2),
-                                       " (", rlang::quo_name(y), ":", rep(names(table(varcroise[!is.na(varcroise)])), each = 2), ")"),
-                                "Pvalue")
-      } else if (langue == "eng") {
-        colnames(nomtable) <- c("Variable",
-                                paste0(rep(c("Count", "Statistics"), length.out = ncol(nomtable) - 2),
-                                       " (", rlang::quo_name(y), ":", rep(names(table(varcroise[!is.na(varcroise)])), each = 2), ")"),
-                                "Pvalue")
-      }
+      tapply(VarBinaire, VarCroise, \(x) sprintf(paste0("%i(%.", PMissing, "f%%)"), sum(is.na(x)), sum(is.na(x)) / length(x)))
     }
-
-    # Remplissage du tableau avec les valeurs
-    nb_classes <- length(unique(varcroise[!is.na(varcroise)]))
-    nomtable[1, (2 * seq_len(nb_classes))] <- tot_nona
-    nomtable[1, 1] <- "Total"
-    nomtable[nrow(nomtable), (2 * seq_len(nb_classes)) + 1] <- tot_na
-    nomtable[nrow(nomtable), 1] <- ifelse(langue == "fr", "** Manquants", ifelse(langue == "eng", "** Missings", "** ..."))
-    nomtable[2, (2 * seq_len(nb_classes))] <- paste0("n=", tab_tot)
-    nomtable[3:(nrow(nomtable) - 1), 1] <- paste0("** ", names(tab))
-    nomtable[3:(nrow(nomtable) - 1), (2 * seq_len(nb_classes)) + 1] <- statist
-    nomtable[2, 1] <- nomvariable
-
-    # Si ordonnee est mis FALSE, va réarranger par effectif décroissant (valeur par défaut)
-    if (!ordonnee) {
-      nomtable[(3:(nrow(nomtable) - 1)), ] <- nomtable[order(tab, decreasing = TRUE) + 2, ]
-    }
-
-    # S'il faut faire un test de comparaison (Fisher ou Chi2)
-    if (test != "none") {
-      if (length(chif_pval) != 1 || !is.numeric(chif_pval) || chif_pval %% 1 != 0) stop("\"chif_pval\" should be a whole positive number.", call. = FALSE)
-      if (suppressWarnings(mean(chisq.test(varquali, varcroise)$expected <= 5) <= .2)) {
-        suppressWarnings(testval <- arrondi_pv(chisq.test(varquali, varcroise, correct = FALSE)$p.value, chif_pval))
-        } else {
-          testval <- "Faire des regroupements"
+    PourcentsCrois <- purrr::pmap_dfc(
+      list(.X = split(X, X$VarCroise),
+           .N = N,
+           .M = M),
+      \(.X, .N, .M) {
+        Pourcent <- list(fmt = if (ConfInter == "none") paste0("%i/%i (", Prec, "%%)") else paste0("%i/%i (", Prec, "%%[", Prec, ";", Prec, "])"),
+                         .X$Freq,
+                         .N,
+                         100 * .X$Freq / .N)
+        if (ConfInter == "normal") {
+          Pourcent <- append(Pourcent,
+                             list(qnorm((1 - ConfLevel) / 2,
+                                        mean = .X$Freq / .N,
+                                        sd = sqrt((.X$Freq / .N) * (1 - .X$Freq / .N) / .N))))
+          Pourcent <- append(Pourcent,
+                             list(qnorm((1 + ConfLevel) / 2,
+                                        mean = .X$Freq / .N,
+                                        sd = sqrt((.X$Freq / .N) * (1 - .X$Freq / .N) / .N))))
+          Pourcent[[5]] <- 100 * pmax(Pourcent[[5]], 0)
+          Pourcent[[6]] <- 100 * pmin(Pourcent[[6]], 1)
+        } else if (ConfInter == "exact") {
+          Pourcent <- append(Pourcent, list(
+            100 * qbeta((1 - ConfLevel) / 2, .X$Freq, .N - .X$Freq + 1),
+            100 * qbeta((1 + ConfLevel) / 2, .X$Freq + 1, .N - .X$Freq)))
+        } else if (ConfInter == "jeffreys") {
+          Pourcent <- append(Pourcent, list(
+            100 * qbeta((1 - ConfLevel) / 2, .X$Freq + .5, .N - .X$Freq + .5),
+            100 * qbeta((1 + ConfLevel) / 2, .X$Freq + .5, .N - .X$Freq + .5)))
         }
-      nomtable[2, "Pvalue"] <- testval
-    }
+        Pourcent <- do.call("sprintf", Pourcent)
+        Pourcent <- c(Pourcent, .M)
+        return(Pourcent)
+      }
+    )
+    if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", nlevels(VarQuali)))
 
-    if (simplif && all(nomtable[, "Pvalue"] == "")) nomtable <- nomtable[, -ncol(nomtable)]
+    # Table of results
+    Tableau <- data.frame(var = paste0(NomVariable, " (n, %)"),
+                          eff = c(paste0("  ", levels(VarQuali)),
+                                  ifelse(Langue == "fr", "    Manquants", ifelse(Langue == "eng", "    Missings", "    ..."))),
+                          stringsAsFactors = FALSE)
+    Tableau <- cbind(Tableau, as.matrix(PourcentsCrois))
+    if (Test != "none") Tableau$pval <- Pval
+    if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
+
+    # Names of columns
+    if (is.null(NomCol)) {
+      if (Langue == "fr") {
+        colnames(Tableau) <- c("Variable", "Label",
+                               paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
+                               if (Test == "none") NULL else "PValue")
+      } else {
+        colnames(Tableau) <- c("Variable", "Label",
+                               paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
+                               if (Test == "none") NULL else "PValue")
+      }
+    } else {
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), " for variable \"", rlang::quo_name(x), "\"."), call. = FALSE)
+      colnames(Tableau) <- NomCol
+    }
 
   }
 
-  if (sum(is.na(varquali)) == 0) nomtable <- nomtable[- nrow(nomtable), ]
+  if (sum(is.na(VarQuali)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
 
-  return(nomtable)
+  class(Tableau) <- c("tab_datavar", class(Tableau))
+  return(Tableau)
 
 }
 

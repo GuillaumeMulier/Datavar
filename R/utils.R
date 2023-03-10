@@ -3,7 +3,7 @@
 
 
 #' Formatting PValue
-FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<", rep("0", S - 1, "1")) else sprintf(paste0("%.", S, "f"), PVal)
+FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<0.", rep("0", S - 1), "1") else sprintf(paste0("%.", S, "f"), PVal)
 
 
 #' Get the 1st quartile
@@ -12,6 +12,24 @@ Q1 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.25, na.rm = na.
 
 #' Get the 3rd quartile
 Q3 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.75, na.rm = na.rm))
+
+
+#' Print variable in message
+PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_br_white)(x)
+
+
+#' Information message
+BgInfo <- cli::make_ansi_style("#ddc03d", bg = TRUE)
+ColInfo <- cli::make_ansi_style("#1346e7")
+ColInfoTxt <- cli::col_br_blue
+Information <- function(x) paste0(cli::style_underline(BgInfo(ColInfo("Info:"))), " ", ColInfoTxt(x))
+
+
+#' Warning message
+BgWarn <- cli::make_ansi_style("#7fccc9", bg = TRUE)
+ColWarn <- cli::make_ansi_style("#8d2885")
+ColWarnTxt <- cli::make_ansi_style("#d56354")
+Attention <- function(x) paste0(cli::style_underline(BgWarn(ColWarn("Careful:"))), " ", ColWarnTxt(x))
 
 
 # ------------------------------------------------ #

@@ -52,6 +52,7 @@ TabBinaire <- function(.Data,
   y <- rlang::enexpr(y)
 
   # Verifications
+  stopifnot(is.logical(Grahper), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec)
   NomCateg <- VerifArgs(NomCateg, NomLabel, VarBinaire, x)
@@ -59,6 +60,7 @@ TabBinaire <- function(.Data,
   NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
   ConfInter <- VerifArgs(ConfInter)
   ConfLevel <- VerifArgs(ConfLevel)
+  PMissing <- VerifArgs(PMissing)
 
   if (is.null(y)) { # Univariate description
 
@@ -75,8 +77,8 @@ TabBinaire <- function(.Data,
                          lapply(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2), qnorm,
                                 mean = X / N,
                                 sd = sqrt((X / N) * (1 - X / N) / N)))
-      Pourcent[[5]] <- 100 * max(Pourcent[[4]], 0)
-      Pourcent[[6]] <- 100 * min(Pourcent[[5]], 1)
+      Pourcent[[5]] <- 100 * max(Pourcent[[5]], 0)
+      Pourcent[[6]] <- 100 * min(Pourcent[[6]], 1)
     } else if (ConfInter == "exact") {
       Pourcent <- append(Pourcent, list(
         100 * qbeta((1 - ConfLevel) / 2, X, N - X + 1),
@@ -90,7 +92,7 @@ TabBinaire <- function(.Data,
 
     # Table of results
     Tableau <- data.frame(var = NomLabel,
-                          eff = c("n, %", ifelse(Langue == "fr", "Manquants", ifelse(Langue == "eng", "Missings", "..."))),
+                          eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ..."))),
                           stats = c(Pourcent, M),
                           stringsAsFactors = FALSE)
     if (Grapher) Tableau$graphes <- list(GGBar(VarBinaire, NULL, Prec), "")
@@ -132,8 +134,8 @@ TabBinaire <- function(.Data,
                          lapply(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2), qnorm,
                                 mean = X / N,
                                 sd = sqrt((X / N) * (1 - X / N) / N)))
-      Pourcent[[4]] <- 100 * pmax(Pourcent[[4]], 0)
-      Pourcent[[5]] <- 100 * pmin(Pourcent[[5]], 1)
+      Pourcent[[5]] <- 100 * pmax(Pourcent[[5]], 0)
+      Pourcent[[6]] <- 100 * pmin(Pourcent[[6]], 1)
     } else if (ConfInter == "exact") {
       Pourcent <- append(Pourcent, list(
         100 * qbeta((1 - ConfLevel) / 2, X, N - X + 1),
@@ -148,36 +150,24 @@ TabBinaire <- function(.Data,
 
     # Table of results
     Tableau <- data.frame(var = NomLabel,
-                          eff = c("n, %", ifelse(Langue == "fr", "Manquants", ifelse(Langue == "eng", "Missings", "..."))),
+                          eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ..."))),
                           stringsAsFactors = FALSE)
     Tableau <- cbind(Tableau, matrix(c(Pourcent, M), nrow = 2, byrow = TRUE))
     if (Test != "none") Tableau$pval <- Pval
-    if (Grapher) Tableau$graphes <- list(GGBar(VarBinaire, VarCroise, Prec), "")
+    if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
+    # Tableau$graphes <- list(GGBar(VarBinaire, VarCroise, Prec), "")
+    # Not that informative to have graphics when multivariate description. I let it only for univariate description
 
     # Names of columns
     if (is.null(NomCol)) {
       if (Langue == "fr") {
-        colnames(Tableau) <- if (Grapher) {
-          c("Variable", "Label",
-            paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-            if (Test == "none") NULL else "PValue",
-            paste0("Graphes_", seq_len(NClasses)))
-        } else {
-          c("Variable", "Label",
-            paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-            if (Test == "none") NULL else "PValue")
-        }
+        colnames(Tableau) <- c("Variable", "Label",
+                               paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
+                               if (Test == "none") NULL else "PValue")
       } else {
-        colnames(Tableau) <- if (Grapher) {
-          c("Variable", "Label",
-            paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-            if (Test == "none") NULL else "PValue",
-            paste0("Graphs_", seq_len(NClasses)))
-        } else {
-          c("Variable", "Label",
-            paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-            if (Test == "none") NULL else "PValue")
-        }
+        colnames(Tableau) <- c("Variable", "Label",
+                               paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
+                               if (Test == "none") NULL else "PValue")
       }
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), " for variable \"", rlang::quo_name(x), "\"."), call. = FALSE)
@@ -188,7 +178,17 @@ TabBinaire <- function(.Data,
 
   if (sum(is.na(VarBinaire)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
 
+  class(Tableau) <- c("tab_datavar", class(Tableau))
   return(Tableau)
+
+}
+
+print.tab_datavar <- function(x) {
+
+  ColRetirer <- grep("^(G|g)raph", names(x))
+  if (length(ColRetirer)) print.data.frame(x[, -ColRetirer]) else print.data.frame(x)
+
+  invisible(x)
 
 }
 
@@ -200,9 +200,10 @@ Tableau %>%
   mutate(across(Label, ~ ifelse(row_number() == 1, Variable, .x))) %>%
   select(-1) %>%
   flextable() %>%
-  mk_par(j = c(4), value = as_paragraph(gg_chunk(value = ., height = .5, width = 1)),
+  mk_par(j = c(3), value = as_paragraph(gg_chunk(value = ., height = .3, width = 1)),
          use_dot = TRUE) %>%
-  merge_at(i = 1, j = 1:4) %>%
+  merge_at(i = 1, j = 1:2) %>%
+  width(j = 2, width = 2) %>%
   padding(padding.top = 1, padding.bottom = 1)
 
 

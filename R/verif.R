@@ -34,6 +34,11 @@ VerifArgs <- function(...) {
                     stop("\"ChifPval\" should be a whole positive number.", call. = FALSE)
                   return(ChifPval)
                 },
+                PMissing = function(PMissing) {
+                  if (!is.null(PMissing) && (length(PMissing) != 1 || !is.numeric(PMissing) || PMissing %% 1 != 0 || PMissing < 0))
+                    stop("\"PMissing\" should be a whole positive number or NULL.", call. = FALSE)
+                  return(ChifPval)
+                },
                 NomCateg = function(NomCateg, NomLabel, VarBinaire, x) {
                   if (!is.null(NomCateg)) {
                     if (NomCateg == "") {
@@ -62,6 +67,15 @@ VerifArgs <- function(...) {
                   }
                   return(NomLabel)
                 },
+                NomVariable = function(NomVariable, x) {
+                  if (is.null(NomVariable)) {
+                    return(paste0(rlang::quo_name(x)))
+                  } else {
+                    if (!is.character(NomVariable) || length(NomVariable) != 1)
+                      stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\"'s NomVariable should be a string designing the name you want to display."), call. = FALSE)
+                    return(NomVariable)
+                  }
+                },
                 VarBinaire = function(VarBinaire, NomCateg, x) {
                   if (sum(!is.na(VarBinaire)) == 0)
                     stop(paste0("Variable \"", rlang::as_label(x), "\" has 0 non missing values."), call. = FALSE)
@@ -73,6 +87,19 @@ VerifArgs <- function(...) {
                   if (is.factor(VarBinaire))
                     VarBinaire <- as.character(VarBinaire)
                   return(as.numeric(VarBinaire == NomCateg))
+                },
+                VarQuali = function(VarQuali, Ordonnee) {
+                  if (sum(!is.na(VarQuali)) == 0)
+                    stop(paste0("Variable \"", rlang::quo_name(x), "\" has 0 non missing values."), call. = FALSE)
+                  if (length(unique(VarQuali[!is.na(VarQuali)])) == 1)
+                    message(paste0(Information(), " The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" only have 1 class."))
+                  if (Ordonnee) {
+                    if (!is.factor(VarQuali))
+                      VarQuali <- factor(VarQuali, levels = sort(unique(VarQuali[!is.na(VarQuali)])))
+                  } else {
+                    VarQuali <- factor(as.character(VarQuali), levels = names(sort(table(VarQuali))))
+                  }
+                  return(VarQuali)
                 },
                 ConfInter = function(ConfInter) {
                   return(match.arg(ConfInter, c("none", "normal", "exact", "jeffreys")))
@@ -93,7 +120,7 @@ VerifArgs <- function(...) {
 #' @param x String naming the test.
 #' @param type_var Type of variable.
 #'
-VerifTest <- function(Test, TypeVar, NClasses, VarBinaire, y, x) {
+VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
 
   Test <- match.arg(Test, c("none", "student", "ztest", "wilcoxon", "kruskal", "fisher", "chisq", "mcnemar"))
 
@@ -103,9 +130,12 @@ VerifTest <- function(Test, TypeVar, NClasses, VarBinaire, y, x) {
     if (TypeVar == "binaire") {
       if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
         stop(paste0("Test unadapted to a binary variable: ", x), call. = FALSE)
+    } else if (TypeVar == "quali") {
+      if (Test %nin% c("fisher", "chisq", "none"))
+        stop(paste0("Test unadapted to a categorical variable: ", x), call. = FALSE)
     }
   }
-  if (Test != "none" & length(unique(VarBinaire[!is.na(VarBinaire)])) == 1) {
+  if (Test != "none" & length(unique(Variable[!is.na(Variable)])) == 1) {
     stop(paste0("Variable \"", rlang::quo_name(x), "\" with only 1 class, no feasable test.\nChange to test = \"none\"."), call. = FALSE)
   }
   # if (type_var == "quanti") {
