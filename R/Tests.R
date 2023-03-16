@@ -6,11 +6,17 @@
      } else if (all(Expected >= 3)) {
        suppressWarnings(Pval <- FormatPval(chisq.test(table(X, Y), correct = TRUE)$p.value, S))
      } else {
-       warning(paste0("Chisq test between ", NameX, " and ", NameY, " is outside the assumptions of the test.\nConsider regrouping categories or using a Fisher test instead.", call. = FALSE))
+       warning(paste0("Chisq test between ", NameX, " and ", NameY, " is outside the assumptions of the test.\nConsider regrouping categories or using a Fisher test instead."), call. = FALSE)
        suppressWarnings(Pval <- FormatPval(chisq.test(table(X, Y), correct = TRUE)$p.value, S))
      }
    } else if (Test == "fisher") {
      Pval <- FormatPval(fisher.test(table(X, Y))$p.value, S)
+   } else if (Test == "ztest") {
+     Pval <- FormatPval(ZTest(X, Y)$p.value, S)
+   } else if (Test == "student") {
+     Pval <- FormatPval(t.test(X ~ Y)$p.value, S)
+   } else if (Test == "wilcoxon") {
+     Pval <- FormatPval(wilcox.test(X ~ Y)$p.value, S)
    }
    return(Pval)
  }

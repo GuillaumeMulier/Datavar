@@ -3,7 +3,7 @@
 
 
 #' Formatting PValue
-FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<0.", rep("0", S - 1), "1") else sprintf(paste0("%.", S, "f"), PVal)
+FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<0.", paste(rep("0", S - 1), collapse = ""), "1") else sprintf(paste0("%.", S, "f"), PVal)
 
 
 #' Get the 1st quartile
@@ -14,8 +14,44 @@ Q1 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.25, na.rm = na.
 Q3 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.75, na.rm = na.rm))
 
 
+#' Get IQR
+IQR <- function(x, Prec, na.rm = TRUE) sprintf(paste0("(", Prec, "-", Prec, ")"), Q1(x, na.rm), Q3(x, na.rm))
+
+
+#' Get range
+RangeVar <- function(x, Prec, na.rm = TRUE) sprintf(paste0("[", Prec, "-", Prec, "]"),
+                                                    range(x, na.rm = na.rm)[1], range(x, na.rm = na.rm)[2])
+
+
+#' Get mean
+MeanVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, mean(x, na.rm = na.rm))
+
+
+#' Get standard deviation
+SdVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, sd(x, na.rm = na.rm))
+
+
+#' Get median
+MedianVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, median(x, na.rm = na.rm))
+
+
+#' Get N
+GetN <- function(x, Prec, na.rm = TRUE) sprintf(Prec, sum(!is.na(x), na.rm = na.rm))
+
+
+#' Get Missing
+GetM <- function(x, Prec, na.rm = TRUE) if (grepl("\\(", Prec)) sprintf(Prec, sum(is.na(x), na.rm = na.rm), 100 * sum(is.na(x), na.rm = na.rm) / length(x)) else sprintf(Prec, sum(is.na(x), na.rm = na.rm))
+
+
 #' Print variable in message
 PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_br_white)(x)
+
+
+#' Borders and formatting for flextable
+LargeBorder <- officer::fp_border(color = "#474747", style = "solid", width = 3)
+SlimBorder <- officer::fp_border(color = "#474747", style = "solid", width = 1.5)
+
+
 
 
 #' Information message

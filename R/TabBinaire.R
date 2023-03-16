@@ -1,8 +1,9 @@
-#' tab_binaire
+#' TabBinaire
 #'
 #' Description of binary variables
 #'
 #' A function to describe binary variables with count and percentage (+ binomial confidence interval if supplied).
+#' The difference with \code{TabQuali} is that \code{TabBinaire} only displays results for the wanted category supplied.
 #'
 #' You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test).
 #'
@@ -10,20 +11,21 @@
 #' @param x The binary variable to describe.
 #' @param y The qualitative variable to perform the bivariate description. If unspecified, univariate description.
 #' @param Prec Number of decimals for the percentages.
+#' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
+#' @param NomCateg The value of the category which you want to display in the table.
+#' @param NomLabel String giving the name of the class that you want to display in the table.
 #' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
-#' @param Test String giving the name of the comparison test performed.
-#' @param Langue "fr" for french and "eng" for english. For the display in the table.
-#' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
-#' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
-#' @param Grapher Boolean if you want to graph the distribution in univariate case.
+#' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher").
 #' @param ChifPval Number of decimal for PValue.
-#' @param NomLabel String giving the name of the class that you want to display in the table.
-#' @param NomCateg The value of the category which you want to display in the table.
+#' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
+#' @param Langue "fr" for french and "eng" for english. For the display in the table.
+#' @param Grapher Boolean if you want to graph the distribution in univariate case.
+#' @param Simplif Boolean. If TRUE (default value) the table will be simplified to remove number of missing data if there aren't any.
 #'
 #' @export
 #'
-#' @seealso \code{\link{descr}}
+#' @seealso \code{\link{Description}}
 #'
 #' @examples
 #' TabBinaire(mtcars, am)
@@ -44,7 +46,8 @@ TabBinaire <- function(.Data,
                        Langue = "eng",
                        NomCol = NULL,
                        NomCateg = NULL,
-                       NomLabel = NULL) {
+                       NomLabel = NULL,
+                       Simplif = FALSE) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
   x <- rlang::enexpr(x)
@@ -52,7 +55,7 @@ TabBinaire <- function(.Data,
   y <- rlang::enexpr(y)
 
   # Verifications
-  stopifnot(is.logical(Grahper), length(Grapher) == 1)
+  stopifnot(is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec)
   NomCateg <- VerifArgs(NomCateg, NomLabel, VarBinaire, x)
@@ -96,6 +99,7 @@ TabBinaire <- function(.Data,
                           stats = c(Pourcent, M),
                           stringsAsFactors = FALSE)
     if (Grapher) Tableau$graphes <- list(GGBar(VarBinaire, NULL, Prec), "")
+    attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
     if (is.null(NomCol)) {
@@ -153,6 +157,7 @@ TabBinaire <- function(.Data,
                           eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ..."))),
                           stringsAsFactors = FALSE)
     Tableau <- cbind(Tableau, matrix(c(Pourcent, M), nrow = 2, byrow = TRUE))
+    attr(Tableau, "crossed") <- "multivariate"
     if (Test != "none") Tableau$pval <- Pval
     if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
     # Tableau$graphes <- list(GGBar(VarBinaire, VarCroise, Prec), "")
@@ -176,36 +181,11 @@ TabBinaire <- function(.Data,
 
   }
 
-  if (sum(is.na(VarBinaire)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
+  if (Simplif && sum(is.na(VarBinaire)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
 
   class(Tableau) <- c("tab_datavar", class(Tableau))
+  if (Grapher) attr(Tableau, "Grapher") <- TRUE
   return(Tableau)
 
 }
-
-print.tab_datavar <- function(x) {
-
-  ColRetirer <- grep("^(G|g)raph", names(x))
-  if (length(ColRetirer)) print.data.frame(x[, -ColRetirer]) else print.data.frame(x)
-
-  invisible(x)
-
-}
-
-
-
-
-Tableau %>%
-  as_grouped_data(groups = "Variable") %>%
-  mutate(across(Label, ~ ifelse(row_number() == 1, Variable, .x))) %>%
-  select(-1) %>%
-  flextable() %>%
-  mk_par(j = c(3), value = as_paragraph(gg_chunk(value = ., height = .3, width = 1)),
-         use_dot = TRUE) %>%
-  merge_at(i = 1, j = 1:2) %>%
-  width(j = 2, width = 2) %>%
-  padding(padding.top = 1, padding.bottom = 1)
-
-
-
 

@@ -31,3 +31,12 @@ GGBar <- function(VarBinaire, VarCroise = NULL, Prec) {
 
   return(Graphe)
 }
+
+
+
+GGHist <- function(VarQuanti, Bins = 10) {
+    Graphe <- ggplot2::ggplot(data = NULL, ggplot2::aes(x = VarQuanti)) +
+      ggplot2::geom_histogram(color = "white", fill = "#333333", bins = Bins, size = 2) +
+      ggplot2::theme_void()
+  return(Graphe)
+}

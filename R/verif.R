@@ -37,7 +37,7 @@ VerifArgs <- function(...) {
                 PMissing = function(PMissing) {
                   if (!is.null(PMissing) && (length(PMissing) != 1 || !is.numeric(PMissing) || PMissing %% 1 != 0 || PMissing < 0))
                     stop("\"PMissing\" should be a whole positive number or NULL.", call. = FALSE)
-                  return(ChifPval)
+                  return(PMissing)
                 },
                 NomCateg = function(NomCateg, NomLabel, VarBinaire, x) {
                   if (!is.null(NomCateg)) {
@@ -97,7 +97,7 @@ VerifArgs <- function(...) {
                     if (!is.factor(VarQuali))
                       VarQuali <- factor(VarQuali, levels = sort(unique(VarQuali[!is.na(VarQuali)])))
                   } else {
-                    VarQuali <- factor(as.character(VarQuali), levels = names(sort(table(VarQuali))))
+                    VarQuali <- factor(as.character(VarQuali), levels = names(sort(table(VarQuali), decreasing = TRUE)))
                   }
                   return(VarQuali)
                 },
@@ -108,6 +108,36 @@ VerifArgs <- function(...) {
                   if (length(ConfLevel) != 1 || !is.numeric(ConfLevel) || ConfLevel <= 0 || ConfLevel >= 1)
                     stop(paste0("\"ConfLevel\" for variable \"", rlang::quo_name(x), "\" must be a unique number between 0 and 1."), call. = FALSE)
                   return(ConfLevel)
+                },
+                Mode = function(Mode, x, Langue, Prec, PMissing) {
+                  Groupes <- dplyr::tibble(
+                    token = c("n", "miss", "moy", "sd", "med", "iq", "rg"),
+                    label = c("N",
+                              if (is.null(PMissing)) {
+                                if (Langue == "fr") "N~Manq~" else "N~Miss~"
+                              } else {
+                                if (Langue == "fr") "N~Manq~(%)" else "N~Miss~(%)"
+                              },
+                              if (Langue == "fr") "Moyenne" else "Mean",
+                              if (Langue == "fr") "(Ec-type)" else "(Sd)",
+                              if (Langue == "fr") "Médiane" else "Median",
+                              "(Q1-Q3)", "[min-max]"),
+                    precision = c("%i", if (is.null(PMissing)) "%i" else paste0("%i(%.", PMissing, "f%%)"), rep(Prec, 5)),
+                    fct = list(GetN, GetM, MeanVar, SdVar, MedianVar, IQR, RangeVar),
+                    groupe = c(1, 1, 2, 2, 3, 3, 4)
+                  )
+                  if (!grepl("med|moy|iq|sd|rg", Mode))
+                    stop(paste0("Unrecognized statistical presentation for variable \"", PrintVar(rlang::quo_name(x)), "\". Please type at least 1 of the following strings: \"med\", \"moy\", \"sd\", \"iq\", \"rg\"."), call. = FALSE)
+                  Groupes <- Groupes[c(TRUE, TRUE, purrr::map_lgl(c("moy", "sd", "med", "iq", "rg"), ~ grepl(.x, Mode))), ]
+                  Groupes <- split(Groupes, Groupes$groupe)
+                  return(Groupes)
+                },
+                VarQuanti = function(VarQuanti, x) {
+                  if (sum(!is.na(VarQuanti)) == 0)
+                    stop(paste0("Variable ", PrintVar(rlang::quo_name(x)), " has 0 non missing values."), call. = FALSE)
+                  if (!is.numeric(VarQuanti))
+                    stop(paste0("The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" isn't of numeric type. Consider transforming it to numeric type to describe it as quantitative variable or describe it as qualitative variable."), call. = FALSE)
+                  return(VarQuanti)
                 })
 
   return(Fct(...))
@@ -129,10 +159,13 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
   } else if (NClasses == 2) {
     if (TypeVar == "binaire") {
       if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a binary variable: ", x), call. = FALSE)
+        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x)), call. = FALSE)
     } else if (TypeVar == "quali") {
       if (Test %nin% c("fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a categorical variable: ", x), call. = FALSE)
+        stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x)), call. = FALSE)
+    } else if (TypeVar == "quanti") {
+      if (Test %nin% c("ztest", "student", "wilcoxon", "none"))
+        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)
     }
   }
   if (Test != "none" & length(unique(Variable[!is.na(Variable)])) == 1) {
