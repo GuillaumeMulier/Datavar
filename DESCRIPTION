@@ -1,6 +1,6 @@
 Package: Datavar
 Title: Description of your data
-Version: 0.0.0.9000
+Version: 0.0.2.0
 Authors@R: 
     person(given = "Guillaume",
            family = "Mulier",
@@ -24,7 +24,9 @@ Imports:
     magrittr (>= 2.0.1),
     officer (>= 0.5.0),
     purrr (>= 0.3.4),
-    rlang (>= 0.4.11)
+    rlang (>= 0.4.11),
+    sysfonts (>= 0.8.8),
+    tidyr (>= 1.2.1)
 Suggests: 
     waldo (>= 0.2.5),
     testthat (>= 3.0.0),

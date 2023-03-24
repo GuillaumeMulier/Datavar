@@ -138,6 +138,11 @@ VerifArgs <- function(...) {
                   if (!is.numeric(VarQuanti))
                     stop(paste0("The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" isn't of numeric type. Consider transforming it to numeric type to describe it as quantitative variable or describe it as qualitative variable."), call. = FALSE)
                   return(VarQuanti)
+                },
+                .Datavar = function(.Datavar, ListeVar) {
+                  if (any(.Datavar$type[.Datavar$var %in% ListeVar] %nin% c("quanti", "quali", "binary")))
+                    stop("Second column of \".Datavar\" should only be comprised of \"quanti\", \"quali\" and \"binary\".")
+                  return(.Datavar)
                 })
 
   return(Fct(...))

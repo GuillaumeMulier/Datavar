@@ -48,9 +48,9 @@ PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_b
 
 
 #' Borders and formatting for flextable
-LargeBorder <- officer::fp_border(color = "#474747", style = "solid", width = 3)
-SlimBorder <- officer::fp_border(color = "#474747", style = "solid", width = 1.5)
-
+LargeBorder <- officer::fp_border(color = "#474747", style = "solid", width = 2.5)
+SlimBorder <- officer::fp_border(color = "#474747", style = "solid", width = 1.25)
+sysfonts::font_add_google(name = "Lato", family = "Lato")
 
 
 

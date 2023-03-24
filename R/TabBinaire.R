@@ -25,7 +25,7 @@
 #'
 #' @export
 #'
-#' @seealso \code{\link{Description}}
+#' @seealso [Description()]
 #'
 #' @examples
 #' TabBinaire(mtcars, am)
@@ -184,7 +184,7 @@ TabBinaire <- function(.Data,
   if (Simplif && sum(is.na(VarBinaire)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
 
   class(Tableau) <- c("tab_datavar", class(Tableau))
-  if (Grapher) attr(Tableau, "Grapher") <- TRUE
+  if (Grapher & is.null(y)) attr(Tableau, "Grapher") <- TRUE
   return(Tableau)
 
 }
