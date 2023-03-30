@@ -70,35 +70,42 @@ VarDescr <- function(.Data,
 #'
 #' You can also use it to cross it with a categorial variable and perform a comparison test. For now no tests are performed with crossing with a variable that has more than 2 classes.
 #'
+#' NoMessDescription removes the information messages and SilentDescription removes also warnings.
+#'
 #' @param .Data The dataset to describe.
 #' @param y The crossing variable. NULL if you only want univariate description.
-#' @param datavar The datavar.
-#' @param listevar A vector of the name of the columns you want to describe. By default, it is the whole set of variables present in the datavar.
-#' @param nomcol The vector of the names you want to give to the columns of the output. NULL for automatic naming.
-#' @param langue "fr" for French and "eng" for English.
-#' @param comparer TRUE won't alterate the datavar, but FALSE will ensure that no test will be performed even if supplied in the datavar. In case of crossed description.
+#' @param .Datavar The datavar.
+#' @param .Listevar A vector of the name of the columns you want to describe. By default, it is the whole set of variables present in the datavar.
+#' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
+#' @param NomCol The vector of the names you want to give to the columns of the output. NULL for automatic naming.
+#' @param Langue "fr" for French and "eng" for English.
+#' @param Grapher Boolean if you want to graph the distribution in univariate case.
+#' @param Simplif Not usefull, if TRUE will delete unused column 'Pvalue'.
+#' @param Comparer TRUE won't alterate the datavar, but FALSE will ensure that no test will be performed even if supplied in the datavar. In case of crossed description. Of note, if no test is supplied in the datavar, even with Comparer = TRUE, there will be no comparison made.
 #'
 #' @export
 #'
 #' @seealso [TabQuali()], [TabQuanti()], [TabBinaire()]
 #'
 #' @examples
+#' # Create the datavar object
+#' DatavarVoitures <- CreateDatavar(mtcars)
 #' # The description of the whole mtcars dataset
-#' descr(mtcars, datavar = datavarr, langue = "eng")
+#' Description(mtcars, .Datavar = DatavarVoitures, Langue = "eng")
 #' # Only some variables
-#' descr(mtcars, datavar = datavarr, listevar = c("mpg", "am", "cyl"), langue = "eng")
+#' Description(mtcars, .Datavar = DatavarVoitures, .Listevar = c("mpg", "am", "cyl"), Langue = "eng")
 #' # Crossed (messages for Wilcoxon's test because of ex aequos)
-#' descr(mtcars, datavar = datavarr, y = am, langue = "eng", comparer = FALSE)
-#' descr(mtcars, datavar = datavarr, y = am, langue = "eng")
+#' Description(mtcars, .Datavar = DatavarVoitures, y = am, Langue = "eng", Comparer = FALSE)
+#' Description(mtcars, .Datavar = DatavarVoitures, y = am, Langue = "eng", Comparer = TRUE)
 Description <- function(.Data,
                         y = NULL,
                         .Datavar,
                         .Listevar = .Datavar[[1]],
                         PMissing = NULL,
-                        Simplif = TRUE,
                         NomCol = NULL,
-                        Grapher = FALSE,
                         Langue = "eng",
+                        Grapher = FALSE,
+                        Simplif = TRUE,
                         Comparer = TRUE) {
 
   y <- rlang::enexpr(y)
@@ -118,13 +125,13 @@ Description <- function(.Data,
     .f = \(var) {
       Ligne <-  .Datavar[.Datavar$var == var, ]
       Tab <- VarDescr(.Data = .Data,
-               LigneDatavar = Ligne,
-               y = y,
-               NomCol = NomCol,
-               Langue = Langue,
-               PMissing = PMissing,
-               Grapher = Grapher,
-               Simplif = Simplif)
+                      LigneDatavar = Ligne,
+                      y = y,
+                      NomCol = NomCol,
+                      Langue = Langue,
+                      PMissing = PMissing,
+                      Grapher = Grapher,
+                      Simplif = Simplif)
       if (Comparer) StockMeta$tests <- rbind(StockMeta$tests, data.frame(var = Tab[1, 1], test = Ligne[["test"]], type = Ligne[["type"]]))
       StockMeta$labels <- rbind(StockMeta$labels, data.frame(var = var, label = Tab[1, 1], type = Ligne[["type"]]))
       return(Tab)
@@ -196,6 +203,65 @@ Description <- function(.Data,
   class(Tableau) <- c("tab_description", "data.frame")
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
   attr(Tableau, "Comparer") <- Comparer & !is.null(y) & any(.Datavar$test != "none")
+  return(Tableau)
+
+}
+
+
+
+#' @rdname Description
+#' @importFrom rlang !!
+NoMessDescription <- function(.Data,
+                              y = NULL,
+                              .Datavar,
+                              .Listevar = .Datavar[[1]],
+                              PMissing = NULL,
+                              NomCol = NULL,
+                              Langue = "eng",
+                              Grapher = FALSE,
+                              Simplif = TRUE,
+                              Comparer = TRUE) {
+
+  y <- rlang::enexpr(y)
+  suppressMessages(Tableau <- Description(.Data = .Data,
+                                          y = !!y,
+                                          .Datavar = .Datavar,
+                                          .Listevar = .Listevar,
+                                          PMissing = PMissing,
+                                          NomCol = NomCol,
+                                          Langue = Langue,
+                                          Grapher = Grapher,
+                                          Simplif = Simplif,
+                                          Comparer = Comparer))
+  return(Tableau)
+
+}
+
+
+#' @rdname Description
+#' @importFrom rlang !!
+SilentDescription <- function(.Data,
+                              y = NULL,
+                              .Datavar,
+                              .Listevar = .Datavar[[1]],
+                              PMissing = NULL,
+                              NomCol = NULL,
+                              Langue = "eng",
+                              Grapher = FALSE,
+                              Simplif = TRUE,
+                              Comparer = TRUE) {
+
+  y <- rlang::enexpr(y)
+  suppressMessages(suppressWarnings(Tableau <- Description(.Data = .Data,
+                                                           y = !!y,
+                                                           .Datavar = .Datavar,
+                                                           .Listevar = .Listevar,
+                                                           PMissing = PMissing,
+                                                           NomCol = NomCol,
+                                                           Langue = Langue,
+                                                           Grapher = Grapher,
+                                                           Simplif = Simplif,
+                                                           Comparer = Comparer)))
   return(Tableau)
 
 }

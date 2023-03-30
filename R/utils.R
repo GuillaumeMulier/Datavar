@@ -45,6 +45,7 @@ GetM <- function(x, Prec, na.rm = TRUE) if (grepl("\\(", Prec)) sprintf(Prec, su
 
 #' Print variable in message
 PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_br_white)(x)
+PrintArg <- function(x) cli::combine_ansi_styles(cli::style_italic, cli::bg_br_cyan, cli::col_br_white)(x)
 
 
 #' Borders and formatting for flextable
@@ -66,6 +67,10 @@ BgWarn <- cli::make_ansi_style("#7fccc9", bg = TRUE)
 ColWarn <- cli::make_ansi_style("#8d2885")
 ColWarnTxt <- cli::make_ansi_style("#d56354")
 Attention <- function(x) paste0(cli::style_underline(BgWarn(ColWarn("Careful:"))), " ", ColWarnTxt(x))
+
+
+#' Warning for deprecated function
+Deprecated <- function() warning("This function is deprecated and is here to let old scripts run. Consider using functions Description(), ... instead.", call. = FALSE, immediate. = TRUE)
 
 
 # ------------------------------------------------ #

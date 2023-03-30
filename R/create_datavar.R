@@ -25,7 +25,7 @@
 #'
 #' @seealso \code{\link{descr}}
 #'
-#' @example
+#' @examples
 #' create_datavar(mtcars)
 create_datavar <- function(data,
                            colonnes = colnames(data),

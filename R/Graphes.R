@@ -1,13 +1,11 @@
-#' Title
+#' Bar chart for categorical variables
 #'
-#' @param .Data
-#' @param VarBinaire
-#' @param NomCateg
-#' @param y
+#' @param VarCroise Crossing variable.
+#' @param Prec Number of digits for percentages (not displayed now by choice).
+#' @param VarBinaire Variable to plot.
 #'
-#' @return
+#' @return SIngle bar plot.
 #'
-#' @examples
 GGBar <- function(VarBinaire, VarCroise = NULL, Prec) {
   # The percent in annotation is quite unadapted and I didn't find a way to add it satisfactorily
   if (is.null(VarCroise)) {
@@ -34,6 +32,13 @@ GGBar <- function(VarBinaire, VarCroise = NULL, Prec) {
 
 
 
+#' Histogramm for continuous variables
+#'
+#' @param VarQuanti Continuous variables.
+#' @param Bins Number of bins
+#'
+#' @return Histogramm plot.
+#'
 GGHist <- function(VarQuanti, Bins = 10) {
     Graphe <- ggplot2::ggplot(data = NULL, ggplot2::aes(x = VarQuanti)) +
       ggplot2::geom_histogram(color = "white", fill = "#333333", bins = Bins, size = 2) +
@@ -42,6 +47,10 @@ GGHist <- function(VarQuanti, Bins = 10) {
 }
 
 
+#' Blank plot for rendering
+#'
+#' @return Blank plot.
+#'
 GGBlank <- function() {
   Graphe <- ggplot2::ggplot(data = NULL) +
     ggplot2::annotate("point", x = 1:5, y = 1:5, color = "transparent") +

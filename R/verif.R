@@ -20,23 +20,23 @@ VerifArgs <- function(...) {
                   } else if (Langue %in% c("eng", "Ang", "ang", "Eng", "english", "English", "anglais", "Anglais")) {
                     Langue <- "eng"
                   } else {
-                    stop(paste0("Unrecognized language: ", Langue, "\nChoose betwwen: 'fr', 'eng'."), call. = FALSE)
+                    stop(paste0("Unrecognized language: ", Langue, "\nChoose betwwen 'fr', 'eng' in argument \"", PrintArg("Langue"), "\"."), call. = FALSE)
                   }
                   return(Langue)
                 },
-                Prec = function(Prec) {
+                Prec = function(Prec, x) {
                   if (length(Prec) != 1 || !is.numeric(Prec) || Prec %% 1 != 0 || Prec < 0)
-                    stop("\"Prec\" should be a whole positive number.", call. = FALSE)
+                    stop("\"", PrintArg("Prec"), "\" should be a whole positive integer for variable \"", PrintVar(rlang::quo_name(x)), "\".", call. = FALSE)
                   return(paste0("%.", Prec, "f"))
                 },
                 ChifPval = function(ChifPval) {
                   if (length(ChifPval) != 1 || !is.numeric(ChifPval) || ChifPval %% 1 != 0 || ChifPval < 0)
-                    stop("\"ChifPval\" should be a whole positive number.", call. = FALSE)
+                    stop("\"", PrintArg("ChifPval"), "\" should be a whole positive number.", call. = FALSE)
                   return(ChifPval)
                 },
                 PMissing = function(PMissing) {
                   if (!is.null(PMissing) && (length(PMissing) != 1 || !is.numeric(PMissing) || PMissing %% 1 != 0 || PMissing < 0))
-                    stop("\"PMissing\" should be a whole positive number or NULL.", call. = FALSE)
+                    stop("\"", PrintArg("PMissing"), "\" should be a whole positive number or NULL.", call. = FALSE)
                   return(PMissing)
                 },
                 NomCateg = function(NomCateg, NomLabel, VarBinaire, x) {
@@ -44,14 +44,14 @@ VerifArgs <- function(...) {
                     if (NomCateg == "") {
                       NomCateg <- NULL
                     } else if (NomCateg %nin% names(table(VarBinaire, useNA = "no"))) {
-                      stop(paste0("Class \"", NomCateg, "\" isn't in variable \"", rlang::quo_name(x),
+                      stop(paste0("Class \"", NomCateg, "\" isn't in variable \"", PrintVar(rlang::quo_name(x)),
                                   "\".\nPossible classes: ", paste(names(table(VarBinaire, useNA = "no")), collapse = " / "), "."),
                            call. = FALSE)
                     }
                   } else {
                     NomCateg <- names(table(VarBinaire, useNA = "no"))[length(names(table(VarBinaire, useNA = "no")))]
-                    message(paste0("\"NomCateg\" of variable \"", rlang::quo_name(x), "\" isn't specified, thus it is taken to be ",
-                                   NomCateg, ".\nCheck if the name of the label (", if (is.null(NomLabel)) "NULL" else NomLabel,
+                    message(paste0("\"", PrintArg("NomCateg"), "\" of variable \"", PrintVar(rlang::quo_name(x)), "\" isn't specified, thus it is taken to be ",
+                                   NomCateg, ".Check if the name of the label (", if (is.null(NomLabel)) "NULL" else NomLabel,
                                    ") corresponds to it."))
                   }
                   return(NomCateg)
@@ -59,11 +59,8 @@ VerifArgs <- function(...) {
                 NomLabel = function(NomLabel, VarBinaire, x) {
                   if (is.null(NomLabel)) {
                     NomLabel <- paste0(rlang::quo_name(x), "=", names(table(VarBinaire, useNA = "no"))[length(names(table(VarBinaire, useNA = "no")))])
-                    warning(
-                      paste0("Unspecified label for variable \"", rlang::quo_name(x), "\".\nDefault label will be \"",
-                             NomLabel, "\"."),
-                      call. = FALSE
-                    )
+                    message(paste0("Unspecified label for variable \"", PrintVar(rlang::quo_name(x)), "\".Default label will be \"",
+                                   NomLabel, "\"."))
                   }
                   return(NomLabel)
                 },
@@ -72,17 +69,17 @@ VerifArgs <- function(...) {
                     return(paste0(rlang::quo_name(x)))
                   } else {
                     if (!is.character(NomVariable) || length(NomVariable) != 1)
-                      stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\"'s NomVariable should be a string designing the name you want to display."), call. = FALSE)
+                      stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\"'s ", PrintArg("NomVariable"), " should be a string designing the name you want to display."), call. = FALSE)
                     return(NomVariable)
                   }
                 },
                 VarBinaire = function(VarBinaire, NomCateg, x) {
                   if (sum(!is.na(VarBinaire)) == 0)
-                    stop(paste0("Variable \"", rlang::as_label(x), "\" has 0 non missing values."), call. = FALSE)
+                    stop(paste0("Variable \"", PrintVar(rlang::as_label(x)), "\" has 0 non missing values."), call. = FALSE)
                   if (length(unique(VarBinaire[!is.na(VarBinaire)])) > 2) {
-                    stop(paste0("The variable to describe \"", rlang::quo_name(x), "\" isn't a binary variable and has more than 2 classes."), call. = FALSE)
+                    stop(paste0("The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" isn't a binary variable and has more than 2 classes."), call. = FALSE)
                   } else if (length(unique(VarBinaire[!is.na(VarBinaire)])) == 1) {
-                    warning(paste0("The variable to describe \"", rlang::quo_name(x), "\" only have 1 class."))
+                    warning(paste0("The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" only have 1 class."))
                   }
                   if (is.factor(VarBinaire))
                     VarBinaire <- as.character(VarBinaire)
@@ -90,7 +87,7 @@ VerifArgs <- function(...) {
                 },
                 VarQuali = function(VarQuali, Ordonnee) {
                   if (sum(!is.na(VarQuali)) == 0)
-                    stop(paste0("Variable \"", rlang::quo_name(x), "\" has 0 non missing values."), call. = FALSE)
+                    stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\" has 0 non missing values."), call. = FALSE)
                   if (length(unique(VarQuali[!is.na(VarQuali)])) == 1)
                     message(paste0(Information(), " The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" only have 1 class."))
                   if (Ordonnee) {
@@ -106,7 +103,7 @@ VerifArgs <- function(...) {
                 },
                 ConfLevel = function(ConfLevel, x) {
                   if (length(ConfLevel) != 1 || !is.numeric(ConfLevel) || ConfLevel <= 0 || ConfLevel >= 1)
-                    stop(paste0("\"ConfLevel\" for variable \"", rlang::quo_name(x), "\" must be a unique number between 0 and 1."), call. = FALSE)
+                    stop(paste0("\"", PrintArg("ConfLevel"), "\" for variable \"", PrintVar(rlang::quo_name(x)), "\" must be a unique number between 0 and 1."), call. = FALSE)
                   return(ConfLevel)
                 },
                 Mode = function(Mode, x, Langue, Prec, PMissing) {
@@ -141,7 +138,7 @@ VerifArgs <- function(...) {
                 },
                 .Datavar = function(.Datavar, ListeVar) {
                   if (any(.Datavar$type[.Datavar$var %in% ListeVar] %nin% c("quanti", "quali", "binary")))
-                    stop("Second column of \".Datavar\" should only be comprised of \"quanti\", \"quali\" and \"binary\".")
+                    stop("Second column of \"", PrintArg(".Datavar"), "\" should only be comprised of \"quanti\", \"quali\" and \"binary\".")
                   return(.Datavar)
                 })
 

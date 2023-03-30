@@ -6,7 +6,7 @@
      } else if (all(Expected >= 3)) {
        suppressWarnings(Pval <- FormatPval(chisq.test(table(X, Y), correct = TRUE)$p.value, S))
      } else {
-       warning(paste0("Chisq test between ", NameX, " and ", NameY, " is outside the assumptions of the test.\nConsider regrouping categories or using a Fisher test instead."), call. = FALSE)
+       warning(paste0("Chisq test between ", PrintVar(NameX), " and ", PrintVar(NameY), " is outside the assumptions of the test.\nConsider regrouping categories or using a Fisher test instead."), call. = FALSE)
        suppressWarnings(Pval <- FormatPval(chisq.test(table(X, Y), correct = TRUE)$p.value, S))
      }
    } else if (Test == "fisher") {

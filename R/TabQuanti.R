@@ -36,12 +36,12 @@ TabQuanti <- function(.Data,
                       y = NULL,
                       Prec = 0,
                       PMissing = NULL,
-                      ChifPval = 2,
+                      NomVariable = NULL,
                       Mode = "mediqrg",
                       Test = "none",
-                      Langue = "eng",
+                      ChifPval = 2,
                       NomCol = NULL,
-                      NomVariable = NULL,
+                      Langue = "eng",
                       Grapher = FALSE,
                       Simplif = TRUE) {
 
@@ -53,7 +53,7 @@ TabQuanti <- function(.Data,
   # Verifications
   stopifnot(is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
-  Prec <- VerifArgs(Prec)
+  Prec <- VerifArgs(Prec, x)
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
   Mode <- VerifArgs(Mode, x, Langue, Prec, PMissing)
@@ -84,7 +84,7 @@ TabQuanti <- function(.Data,
       if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
       else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
     } else {
-      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), "."), call. = FALSE)
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for ", PrintVar(rlang::quo_name(x)), "."), call. = FALSE)
       colnames(Tableau) <- NomCol
     }
 
@@ -140,7 +140,7 @@ TabQuanti <- function(.Data,
                                if (Test == "none") NULL else "PValue")
       }
     } else {
-      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), " for variable \"", rlang::quo_name(x), "\"."), call. = FALSE)
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for variable \"", PrintVar(rlang::quo_name(x)), "\"."), call. = FALSE)
       colnames(Tableau) <- NomCol
     }
 
@@ -152,8 +152,8 @@ TabQuanti <- function(.Data,
 
   }
 
-  class(Tableau) <- c("tab_datavar", class(Tableau))
-  if (Grapher & is.null(y)) attr(Tableau, "Grapher") <- TRUE
+  class(Tableau) <- c("tab_description", class(Tableau))
+  attr(Tableau, "Grapher") <- Grapher & is.null(y)
   return(Tableau)
 
 }

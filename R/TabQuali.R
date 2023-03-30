@@ -33,22 +33,22 @@
 #' TabQuali(mtcars, cyl)
 #' TabQuali(mtcars, cyl, am)
 #' TabQuali(mtcars, cyl, am,
-#'          nomvariable = "Number of cylinders",
-#'          test = "chisq", chif_pval = 3)
+#'          NomVariable = "Number of cylinders",
+#'          Test = "chisq", ChifPval = 3)
 TabQuali <- function(.Data,
                      x,
                      y = NULL,
-                     Langue = "eng",
                      Prec = 0,
+                     PMissing = NULL,
+                     NomVariable = NULL,
                      ConfInter = c("none", "normal", "exact", "jeffreys"),
                      ConfLevel = .95,
-                     PMissing = NULL,
                      Test = "none",
                      ChifPval = 2,
                      NomCol = NULL,
+                     Langue = "eng",
                      Ordonnee = FALSE,
                      Grapher = FALSE,
-                     NomVariable = NULL,
                      Simplif = TRUE) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
@@ -59,9 +59,9 @@ TabQuali <- function(.Data,
   # Verifications
   stopifnot(is.logical(Ordonnee), length(Ordonnee) == 1, is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
-  Prec <- VerifArgs(Prec)
+  Prec <- VerifArgs(Prec, x)
   ConfInter <- VerifArgs(ConfInter)
-  ConfLevel <- VerifArgs(ConfLevel)
+  ConfLevel <- VerifArgs(ConfLevel, x)
   VarQuali <- VerifArgs(VarQuali, Ordonnee)
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
@@ -112,7 +112,7 @@ TabQuali <- function(.Data,
       if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
       else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
     } else {
-      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), "."), call. = FALSE)
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for ", PrintVar(rlang::quo_name(x)), "."), call. = FALSE)
       colnames(Tableau) <- NomCol
     }
 
@@ -193,7 +193,7 @@ TabQuali <- function(.Data,
                                if (Test == "none") NULL else "PValue")
       }
     } else {
-      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"NomCol\" argument isn't of length", ncol(Tableau), " for variable \"", rlang::quo_name(x), "\"."), call. = FALSE)
+      if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for variable \"", PrintVar(rlang::quo_name(x)), "\"."), call. = FALSE)
       colnames(Tableau) <- NomCol
     }
 
@@ -201,8 +201,8 @@ TabQuali <- function(.Data,
 
   if (Simplif && sum(is.na(VarQuali)) == 0) Tableau <- Tableau[- nrow(Tableau), ]
 
-  class(Tableau) <- c("tab_datavar", class(Tableau))
-  if (Grapher & is.null(y)) attr(Tableau, "Grapher") <- TRUE
+  class(Tableau) <- c("tab_description", class(Tableau))
+  attr(Tableau, "Grapher") <- Grapher & is.null(y)
   return(Tableau)
 
 }

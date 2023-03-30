@@ -8,11 +8,11 @@ tab_binaire(
   data,
   x,
   y = NULL,
-  prec = 0,
+  Prec = 0,
   coefbin = FALSE,
   chif_pval = 2,
   test = "none",
-  langue = "eng",
+  Langue = "eng",
   nomcol = NULL,
   nomcateg = NULL,
   label = NULL,
@@ -26,7 +26,7 @@ tab_binaire(
 
 \item{y}{The qualitative variable to perform the bivariate description. If unspecified, univariate description.}
 
-\item{prec}{Number of decimals for the percentages.}
+\item{Prec}{Number of decimals for the percentages.}
 
 \item{coefbin}{If TRUE displays the binomial confidence intervals.}
 
@@ -34,7 +34,7 @@ tab_binaire(
 
 \item{test}{String giving the name of the comparison test performed.}
 
-\item{langue}{"fr" for french and "eng" for english. For the display in the table.}
+\item{Langue}{"fr" for french and "eng" for english. For the display in the table.}
 
 \item{nomcol}{Vector of strings to name each column of the output. Automatic display if unspecified.}
 
@@ -50,7 +50,7 @@ Description of binary variables
 \details{
 A function to describe binary variables with count and percentage (+ binomial confidence interval if supplied).
 
-You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test). For now no tests are performed with crossing with a variable that has more than 2 classes.
+You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test).
 }
 \examples{
 tab_binaire(mtcars, am)

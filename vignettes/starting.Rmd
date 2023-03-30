@@ -21,36 +21,47 @@ library(Datavar)
 library(knitr)
 ```
 
-The library *knitr* is loaded for the presentation of the tables. Package *flextable* can also be used with the foot attribute of the table to create a footnote indicating how the variable are described. For now, I use kable but I plan on using *flextable*.
+The library *knitr* is loaded for the presentation of what is the result of the tables. 
+Alternatively, function **FlexTabDescr** displays presentation ready tables with help of **flextable** package.
 
 The basical use of datavar is to describe your dataset with default options:
 
 ```{r}
-# To set the default language to English (French by default)
-formals(descr)$langue <- "eng"
+# To set the default language to French (English by default)
+# formals(descr)$langue <- "eng"
 
 # Basic description
-datavar_cars <- create_datavar(mtcars)
-table_descr <- descr(mtcars, datavar = datavar_cars)
-kable(table_descr, row.names = FALSE)
+DatavarVoitures <- CreateDatavar(mtcars)
+TableDescr <- NoMessDescription(mtcars, .Datavar = DatavarVoitures)
+kable(TableDescr, row.names = FALSE)
 ```
+
+Else we can display it with **flextable**:
+
+```{r}
+TableDescr <- NoMessDescription(mtcars, .Datavar = DatavarVoitures, Grapher = TRUE)
+FlexTabDescr(TableDescr)
+```
+
 
 This is the basical use for the description, but we can also cross with a variable like the transmission.
 
 ```{r}
-table_descr_am <- descr(mtcars, y = am, datavar = datavar_cars)
-kable(table_descr_am, row.names = FALSE)
+TableDescrAm <- NoMessDescription(mtcars, .Datavar = DatavarVoitures, y = am)
+FlexTabDescr(TableDescrAm)
 ```
 
 After that you can customize your datavar directly from R as following or you can also directly make it from csv.
+Here is the result with fully customized datavar.
 
 ```{r}
-datavar_cars$nomvariable <- c("Miles per gallon", "Number of cylinders", "Displacement", 
-                              "Gross horsepower", "Rear axle ratio", "Weight (1000 lbs)", "Quarter mile time (sec)", 
-                              "Straight engine", "Manual transmission", "Number of forward gears", 
-                              "Number of carburetors")
-table_descr_am <- descr(mtcars, y = am, datavar = datavar_cars)
-kable(table_descr_am, row.names = FALSE)
+TableDescrAm <- SilentDescription(mtcars, .Datavar = DatavarMtcars, y = am)
+FlexTabDescr(TableDescrAm)
 ```
 
-And now you have your variables' names. If you want to visualize your data quickly, use **visu_data** application (not show in the vignette): you can copy paste the code for the graph to reproduce it out of the application.
+## Explore data with plots
+
+If you want to visualize your data quickly, use **visu_data** application (not show in the vignette): you can copy paste the code for the graph to reproduce it out of the application.
+Using informations in the datavar, it will select you the plots you can make.
+
+

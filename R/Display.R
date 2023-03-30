@@ -1,26 +1,4 @@
 
-#' Print single description table in console
-#'
-#' @param x The table of description
-#'
-#' @export
-#'
-#' @examples
-#' TabBinaire(mtcars, am, Grapher = TRUE)
-print.tab_datavar <- function(x, ...) {
-
-  if (!is.null(attr(x, "Grapher"))) {
-    if (attr(x, "crossed") == "univariate") {
-      print.data.frame(x[, -4])
-    }
-  } else {
-    print.data.frame(x)
-  }
-
-  invisible(x)
-
-}
-
 #' Print description table in console
 #'
 #' @param x The table of description
@@ -53,6 +31,14 @@ print.tab_description <- function(x, ...) {
 
 
 
+#' Flextable personal theme
+#'
+#' @param tab Flextable objet.
+#' @param BaseSize Size of police.
+#'
+#' @return A flextable object.
+#' @export
+#'
 ThemePerso <- function(tab, BaseSize = 10) {
 
   if (!inherits(tab, "flextable"))
@@ -95,6 +81,16 @@ ThemePerso <- function(tab, BaseSize = 10) {
 
 }
 
+#' Flextable theme for description table
+#'
+#' @param tab Flextable object.
+#' @param BaseSize Size of police.
+#' @param ColNum Index of numerical columns.
+#' @param Separations Index of columns we want separator.
+#'
+#' @return A flextable object (first column and headers can be written in markdown like synthax).
+#' @export
+#'
 ThemeDescription <- function(tab, BaseSize = 10, ColNum = NULL, Separations = NULL) {
 
   tab <- ThemePerso(tab, BaseSize)
@@ -110,6 +106,24 @@ ThemeDescription <- function(tab, BaseSize = 10, ColNum = NULL, Separations = NU
 }
 
 
+#' Display results of description
+#'
+#' Create a flextable object to display the result of a tab_description object.
+#'
+#' @param TabDescription  tab_description object.
+#' @param Widths The widths of the displayed columns.
+#' @param BaseSize Size of police.
+#'
+#' @return A flextable object.
+#' @export
+#'
+#' @examples
+#' # Create the datavar object
+#' DatavarVoitures <- CreateDatavar(mtcars)
+#' # The description of the whole mtcars dataset
+#' TabDescr <- Description(mtcars, .Datavar = DatavarVoitures, Langue = "eng", Grapher = TRUE)
+#' # Display as flextable
+#' FlexTabDescr(TabDescr)
 FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
 
   stopifnot(is.null(Widths) | length(Widths) == (ncol(TabDescription) - 1))
@@ -134,10 +148,11 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
   if (attr(TabDescription, "crossed") == "univariate") {
     if (attr(TabDescription, "Grapher")) {
       # Hacky way, but if I don't supply all Null lines with blank ggplots, there is a print in console and if I don't put ggplots in them, [NULL] in the output
+      # I still get a warning so I decided to suppress it for now
       LignesNULL <- purrr::map_lgl(ResDescription[, 3], ~ length(.x) < 2)
       LignesGG <- which(purrr::map_int(ResDescription[, 3], length) > 1)
       ListeImg <- as.list(rep(getOption("blanc_datavar"), sum(LignesNULL)))
-      ResDescription[LignesNULL, 3] <- ListeImg
+      suppressWarnings(ResDescription[LignesNULL, 3] <- ListeImg)
     }
     FlexDescription <- flextable::flextable(ResDescription)
     if (attr(TabDescription, "Grapher")) {
@@ -152,7 +167,7 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
       FlexDescription <- flextable::compose(FlexDescription, i = LignesGG[!LignesGG %in% TabLabels$debut], j = 3, value = flextable::as_paragraph(flextable::gg_chunk(value = ., height = .25, width = 1)), use_dot = TRUE)
     }
     FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::merge_at(data, i = x, j = seq_len(flextable::ncol_keys(FlexDescription))), .init = FlexDescription)
-    FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::fontsize(data, i = x, j = 1, size = BaseSize * 1.2) |> bold(i = x, j = 1), .init = FlexDescription)
+    FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::fontsize(data, i = x, j = 1, size = BaseSize * 1.2) |> flextable::bold(i = x, j = 1), .init = FlexDescription)
     FlexDescription <- purrr::reduce2(seq_along(Widths), Widths, \(data, x, larg) flextable::width(data, j = x, width = larg), .init = FlexDescription)
     FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
     FlexDescription <- ThemeDescription(FlexDescription,
@@ -167,9 +182,10 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     }
     FlexDescription <- flextable::flextable(ResDescription)
     FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::merge_at(data, i = x, j = seq_len(flextable::ncol_keys(FlexDescription))), .init = FlexDescription)
-    FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::fontsize(data, i = x, j = 1, size = BaseSize * 1.2) |> bold(i = x, j = 1), .init = FlexDescription)
+    FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::fontsize(data, i = x, j = 1, size = BaseSize * 1.2) |> flextable::bold(i = x, j = 1), .init = FlexDescription)
     FlexDescription <- purrr::reduce2(seq_along(Widths), Widths, \(data, x, larg) flextable::width(data, j = x, width = larg), .init = FlexDescription)
-    FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
+    if (attr(TabDescription, "Comparer"))
+      FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
     FlexDescription <- ThemeDescription(FlexDescription,
                                        BaseSize = BaseSize,
                                        Separations = seq(2, flextable::ncol_keys(FlexDescription) - 1),
