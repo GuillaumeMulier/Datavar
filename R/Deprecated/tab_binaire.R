@@ -6,6 +6,8 @@
 #'
 #' You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test).
 #'
+#' The function has been updated to \code{TabBinaire}.
+#'
 #' @param data The dataset that contains the variables.
 #' @param x The binary variable to describe.
 #' @param y The qualitative variable to perform the bivariate description. If unspecified, univariate description.
@@ -21,7 +23,7 @@
 #'
 #' @export
 #'
-#' @seealso \code{\link{descr}}
+#' @seealso [descr()], [TabBinaire()]
 #'
 #' @examples
 #' tab_binaire(mtcars, am)

@@ -17,6 +17,7 @@
 #' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher").
+#' @param P0 Either length 1 or length 2 numeric vector between 0 and 1 giving the probability(ies) under H0. When 1 proportion is supplied, it is assigned to value NomCateg.
 #' @param ChifPval Number of decimal for PValue.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
@@ -43,6 +44,7 @@ TabBinaire <- function(.Data,
                        ConfInter = c("none", "normal", "exact", "jeffreys"),
                        ConfLevel = .95,
                        Test = "none",
+                       P0 = NULL,
                        ChifPval = 2,
                        NomCol = NULL,
                        Langue = "eng",
@@ -64,6 +66,7 @@ TabBinaire <- function(.Data,
   ConfInter <- VerifArgs(ConfInter)
   ConfLevel <- VerifArgs(ConfLevel, x)
   PMissing <- VerifArgs(PMissing)
+  ChifPval <- VerifArgs(ChifPval)
 
   if (is.null(y)) { # Univariate description
 
@@ -92,19 +95,26 @@ TabBinaire <- function(.Data,
         100 * qbeta((1 + ConfLevel) / 2, X + .5, N - X + .5)))
     }
     Pourcent <- do.call("sprintf", Pourcent)
+    if (Test != "none") {
+      P0 <- VerifArgs(P0, VarBinaire, x)
+      Test <- VerifTest(Test, "binaire", 1, VarBinaire, y, x)
+      NomLabel <- paste0(NomLabel, " (*&pi;~0~=", paste(round(P0, 2), collapse = ";"), "*)")
+      Pval <- c(MakeTest(VarBinaire, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), "")
+    }
 
     # Table of results
     Tableau <- data.frame(var = NomLabel,
                           eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ..."))),
                           stats = c(Pourcent, M),
                           stringsAsFactors = FALSE)
+    if (Test != "none") Tableau$pval <- Pval
     if (Grapher) Tableau$graphes <- list(GGBar(VarBinaire, NULL, Prec), "")
     attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
     if (is.null(NomCol)) {
-      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
-      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
+      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue", "Graphes") else c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue")}
+      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue", "Graphs") else c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue")}
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), "."), call. = FALSE)
       colnames(Tableau) <- NomCol
@@ -119,7 +129,6 @@ TabBinaire <- function(.Data,
 
     # Verifications on statistical test
     Test <- VerifTest(Test, "binaire", NClasses, VarBinaire, y, x)
-    ChifPval <- VerifArgs(ChifPval)
 
     # Statistics
     X <- tapply(VarBinaire, VarCroise, sum, na.rm = TRUE)
@@ -185,6 +194,7 @@ TabBinaire <- function(.Data,
 
   class(Tableau) <- c("tab_description", class(Tableau))
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
+  attr(Tableau, "Comparer") <- Test != "none"
   return(Tableau)
 
 }

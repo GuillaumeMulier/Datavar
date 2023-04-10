@@ -16,6 +16,7 @@
 #' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher").
+#' @param P0 Numeric vector of length the number of categories in x between 0 and 1 giving the probability(ies) under H0.
 #' @param ChifPval Number of decimals for the Pvalue if test is performed.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
@@ -44,6 +45,7 @@ TabQuali <- function(.Data,
                      ConfInter = c("none", "normal", "exact", "jeffreys"),
                      ConfLevel = .95,
                      Test = "none",
+                     P0 = NULL,
                      ChifPval = 2,
                      NomCol = NULL,
                      Langue = "eng",
@@ -97,20 +99,27 @@ TabQuali <- function(.Data,
         100 * qbeta((1 + ConfLevel) / 2, X + .5, N - X + .5)))
     }
     Pourcent <- do.call("sprintf", Pourcent)
+    if (Test != "none") {
+      P0 <- VerifArgs(P0, VarQuali, x)
+      Test <- VerifTest(Test, "quali", 1, VarBinaire, y, x)
+      NomVariable <- paste0(NomVariable, " (n, %) [*&pi;~0~=", paste(round(P0, 2), collapse = ";"), "*]")
+      Pval <- c(MakeTest(VarQuali, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), rep("", nlevels(VarQuali)))
+    }
 
     # Table of results
-    Tableau <- data.frame(var = paste0(NomVariable, " (n, %)"),
+    Tableau <- data.frame(var = NomVariable,
                           eff = c(paste0("  ", levels(VarQuali)),
                                   ifelse(Langue == "fr", "    Manquants", ifelse(Langue == "eng", "    Missings", "    ..."))),
                           stats = c(Pourcent, M),
                           stringsAsFactors = FALSE)
+    if (Test != "none") Tableau$pval <- Pval
     if (Grapher) Tableau$graphes <- c(lapply(levels(VarQuali), \(x) GGBar(as.numeric(VarQuali == x), NULL, Prec)), "")
     attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
     if (is.null(NomCol)) {
-      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
-      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
+      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue", "Graphes") else c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue")}
+      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue", "Graphs") else c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue")}
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for ", PrintVar(rlang::quo_name(x)), "."), call. = FALSE)
       colnames(Tableau) <- NomCol
@@ -203,6 +212,7 @@ TabQuali <- function(.Data,
 
   class(Tableau) <- c("tab_description", class(Tableau))
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
+  attr(Tableau, "Comparer") <- Test != "none"
   return(Tableau)
 
 }

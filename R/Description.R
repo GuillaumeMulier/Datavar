@@ -147,11 +147,11 @@ Description <- function(.Data,
   if (Comparer & !is.null(y)) {
     if (Langue == "fr") {
       DicoVariables <- c("quanti" = "quantitatives", "quali" = "catégorielles", "binary" = "binaires")
-      DicoTests <- c("student" = "test T de Student", "ztest" = "test Z", "wilcoxon" = "test de Wilcoxon-Mann-Whitney",
+      DicoTests <- c("student" = "test T de Student", "studentvar" = "test T de Student avec correction de Welch", "ztest" = "test Z", "wilcoxon" = "test de Wilcoxon-Mann-Whitney",
                      "kruskal" = "test de Kruskal-Wallis", "fisher" = "test exact de Fisher", "chisq" = "test du Khi-2", "mcnemar" = "test de McNemar")
     } else {
       DicoVariables <- c("quanti" = "quantitative", "quali" = "categorical", "binary" = "binary")
-      DicoTests <- c("student" = "Student's T-test", "ztest" = "Z-test", "wilcoxon" = "Wilcoxon-Mann-Whitney's test",
+      DicoTests <- c("student" = "Student's T-test", "studentvar" = "Student's T-test with Welch's correction", "ztest" = "Z-test", "wilcoxon" = "Wilcoxon-Mann-Whitney's test",
                      "kruskal" = "Kruskal-Wallis' test", "fisher" = "exact Fisher's test", "chisq" = "Khi-2 test", "mcnemar" = "McNemar test")
     }
     Testings <- StockMeta$tests |>
@@ -198,11 +198,13 @@ Description <- function(.Data,
         }
       })
     }
+  } else if (Comparer & is.null(y)) {
+    # TODO #
   }
 
   class(Tableau) <- c("tab_description", "data.frame")
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
-  attr(Tableau, "Comparer") <- Comparer & !is.null(y) & any(.Datavar$test != "none")
+  attr(Tableau, "Comparer") <- Comparer & !is.null(y) & any(.Datavar$test[.Datavar$var %in% .Listevar] != "none")
   return(Tableau)
 
 }

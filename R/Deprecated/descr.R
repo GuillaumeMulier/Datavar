@@ -131,6 +131,8 @@ descr_var <- function(data,
 #'
 #' You can also use it to cross it with a categorial variable and perform a comparison test (chisq or fisher test). For now no tests are performed with crossing with a variable that has more than 2 classes.
 #'
+#' The function is now updated as function \code{Description} and one should use the later instead.
+#'
 #' @param data The dataset.
 #' @param y The crossing variable. NULL if you only want univariate description.
 #' @param datavar The datavar.
@@ -141,7 +143,7 @@ descr_var <- function(data,
 #'
 #' @export
 #'
-#' @seealso \code{\link{tab_quali}}, \code{\link{tab_quanti}}, \code{\link{tab_binaire}}
+#' @seealso \code{\link{tab_quali}}, \code{\link{tab_quanti}}, \code{\link{tab_binaire}}, \code{\link{Description}}
 #'
 #' @examples
 #' # The description of the whole mtcars dataset

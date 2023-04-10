@@ -106,6 +106,25 @@ VerifArgs <- function(...) {
                     stop(paste0("\"", PrintArg("ConfLevel"), "\" for variable \"", PrintVar(rlang::quo_name(x)), "\" must be a unique number between 0 and 1."), call. = FALSE)
                   return(ConfLevel)
                 },
+                P0 = function(P0, VarQuali, x) {
+                  if (length(unique(VarQuali[!is.na(VarQuali)])) == 2) {
+                    if (is.null(P0)) {
+                      P0 <- c(.5, .5)
+                    } else if (length(P0) == 1) {
+                      P0 <- c(1 - P0, P0)
+                    } else if (length(P0) == 2) {
+                      if (round(abs(1 - sum(P0)), 15) != 0)
+                        stop(paste0("For \"", PrintVar(rlang::quo_name(x)), "\", the sum of probabilities in \"", PrintArg("P0"), "\" should sum to 1."), call. = FALSE)
+                    }
+                  } else {
+                    if (is.null(P0)) {
+                      P0 <- rep(1 / nlevels(VarQuali), nlevels(VarQuali))
+                    }
+                  }
+                  if (any(P0 < 0 | P0 > 1))
+                    stop(paste0("For \"", PrintVar(rlang::quo_name(x)), "\", \"", PrintArg("P0"), "\" should contain probabilities between 0 and 1."), call. = FALSE)
+                  return(P0)
+                },
                 Mode = function(Mode, x, Langue, Prec, PMissing) {
                   Groupes <- dplyr::tibble(
                     token = c("n", "miss", "moy", "sd", "med", "iq", "rg"),
@@ -154,10 +173,20 @@ VerifArgs <- function(...) {
 #'
 VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
 
-  Test <- match.arg(Test, c("none", "student", "ztest", "wilcoxon", "kruskal", "fisher", "chisq", "mcnemar"))
+  Test <- match.arg(Test, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal", "signed-wilcoxon",
+                            "fisher", "chisq", "binomial", "multinomial", "mcnemar"))
 
   if (NClasses == 1) {
-    stop(paste0("There must be at least 2 classes to perform a crossed description relative to variable \"", rlang::quo_name(y), "\"."), call. = FALSE)
+    if (TypeVar == "binaire") {
+      if (Test %nin% c("ztest", "binomial", "chisq", "none"))
+        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x)), call. = FALSE)
+    } else if (TypeVar == "quali") {
+      if (Test %nin% c("ztest", "multinomial", "chisq", "none"))
+        stop(paste0("Test unadapted to a qualitative variable: ", PrintVar(x)), call. = FALSE)
+    } else if (TypeVar == "quanti") {
+      if (Test %nin% c("ztest", "student", "studentvar", "signed-wilcoxon", "none"))
+        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)
+    }
   } else if (NClasses == 2) {
     if (TypeVar == "binaire") {
       if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
@@ -166,20 +195,12 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
       if (Test %nin% c("fisher", "chisq", "none"))
         stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x)), call. = FALSE)
     } else if (TypeVar == "quanti") {
-      if (Test %nin% c("ztest", "student", "wilcoxon", "none"))
+      if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
         stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)
     }
+  } else if (NClasses > 2) {
+    stop("Tests not supported yet (more than 2 Classes).", call. = FALSE)
   }
-  if (Test != "none" & length(unique(Variable[!is.na(Variable)])) == 1) {
-    stop(paste0("Variable \"", rlang::quo_name(x), "\" with only 1 class, no feasable test.\nChange to test = \"none\"."), call. = FALSE)
-  }
-  # if (type_var == "quanti") {
-  #   if (x %nin% c("student", "wilcoxon", "none")) stop(paste0("Test unadapted to a quantitative variable: ", x), call. = FALSE)
-  # } else if (type_var %in% c("binaire")) {
-  #   if (x %nin% c("fisher", "chisq", "none")) stop(paste0("Test unadapted to a binary variable: ", x), call. = FALSE)
-  # } else if (type_var %in% c("quali")) {
-  #   if (x %nin% c("chisq", "none")) stop(paste0("Test unadapted to a categorial variable: ", x), call. = FALSE)
-  # }
 
   return (Test)
 }

@@ -59,7 +59,7 @@ TableDescrAm <- SilentDescription(mtcars, .Datavar = DatavarMtcars, y = am)
 FlexTabDescr(TableDescrAm)
 ```
 
-## Explore data with plots
+# Explore data with plots
 
 If you want to visualize your data quickly, use **visu_data** application (not show in the vignette): you can copy paste the code for the graph to reproduce it out of the application.
 Using informations in the datavar, it will select you the plots you can make.

@@ -11,7 +11,8 @@ print.tab_description <- function(x, ...) {
 
   if (attr(x, "Grapher")) {
     if (attr(x, "crossed") == "univariate") {
-      x[[4]] <- NULL
+      colonne <- ncol(x)
+      x[[colonne]] <- NULL
       x2 <- as.data.frame(x)
     }
   } else {
@@ -187,9 +188,9 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     if (attr(TabDescription, "Comparer"))
       FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
     FlexDescription <- ThemeDescription(FlexDescription,
-                                       BaseSize = BaseSize,
-                                       Separations = seq(2, flextable::ncol_keys(FlexDescription) - 1),
-                                       ColNum = seq(2, flextable::ncol_keys(FlexDescription)))
+                                        BaseSize = BaseSize,
+                                        Separations = seq(2, flextable::ncol_keys(FlexDescription) - 1),
+                                        ColNum = seq(2, flextable::ncol_keys(FlexDescription)))
   }
 
   return(FlexDescription)
