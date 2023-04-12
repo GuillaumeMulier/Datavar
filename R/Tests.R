@@ -45,15 +45,21 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
     Pval <- FormatPval(fisher.test(table(X, Y))$p.value, S)
 
   } else if (Test == "ztest") {
-    if (any(as.numeric(table(Y)) < 30))
-      warning(Attention(paste0("At least 1 group with less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
-    suppressWarnings(Pval <- FormatPval(ZTest(X, Y)$p.value, S))
+    if (any(Y != Y[1])) { # Multivariate
+      if (any(as.numeric(table(Y)) < 30))
+        warning(Attention(paste0("At least 1 group with less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+      suppressWarnings(Pval <- FormatPval(ZTest(X, Y)$p.value, S))
+
+    } else { # Univariate
+      suppressWarnings(Pval <- FormatPval(ZTest(X, Mu = Mu)$p.value, S))
+
+    }
 
   } else if (Test == "student") {
-    if (any(tapply(X, Y, \(x) shapiro.test(x)$p.value) < .05))
-      message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
 
     if (any(Y != Y[1])) { # Multivariate
+      if (any(tapply(X, Y, \(x) shapiro.test(x)$p.value) < .05))
+        message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
       if (var.test(X ~ Y)$p.value < .05) {
         Longueurs <- as.numeric(table(Y))
         if (max(Longueurs[2] / Longueurs[1], Longueurs[1] / Longueurs[2]) > 1.5) {
@@ -65,18 +71,33 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
       Pval <- FormatPval(t.test(X ~ Y, var.equal = TRUE)$p.value, S)
 
     } else { # Univariate
-      stop("One sample tests are not yet implemented.", call. = FALSE)
+      if (shapiro.test(X)$p.value < .05)
+        message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
+      Pval <- FormatPval(t.test(X, mu = Mu)$p.value, S)
+
     }
 
   } else if (Test == "studentvar") {
     if (any(tapply(X, Y, \(x) shapiro.test(x)$p.value) < .05))
       message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
-    if (var.test(X ~ Y)$p.value < .05)
+    if (var.test(X ~ Y)$p.value >= .05)
       message(Information(paste0("For variable \"", PrintVar(NameX), "\", the F-test doesn't find significant difference between variances so classic T-test could be performed.")))
     Pval <- FormatPval(t.test(X ~ Y, var.equal = FALSE)$p.value, S)
 
   } else if (Test == "wilcoxon") {
     Pval <- FormatPval(wilcox.test(X ~ Y)$p.value, S)
+
+  } else if (Test == "signed-wilcoxon") {
+    if (any(Y != Y[1])) { # Multivariate
+      stop("")
+    } else { # Univariate
+      Pval <- FormatPval(wilcox.test(X, mu = Mu)$p.value, S)
+
+    }
+
+  } else {
+    stop("Safety stop.")
+
   }
 
   return(Pval)
@@ -122,7 +143,7 @@ ZTest <- function(VarQuanti, VarY = NULL, Paired = FALSE,
     stop("Argument 'Mu' must be a single number.", call. = FALSE)
   if (!missing(ConfLevel) && (length(ConfLevel) != 1 || !is.finite(ConfLevel) || ConfLevel < 0 || ConfLevel > 1))
     stop("Argument 'ConfLevel' must be a single number between 0 and 1.", call. = FALSE)
-  if (length(unique(VarY[!is.na(VarY)])) != 2)
+  if (!is.null(VarY) & length(unique(VarY[!is.na(VarY)])) != 2)
     stop("'VarY' must have 2 categories to perform Z-test.", call. = FALSE)
 
   # Reconstruct the different quantities used in formula
@@ -141,7 +162,7 @@ ZTest <- function(VarQuanti, VarY = NULL, Paired = FALSE,
     dname <- deparse(substitute(VarQuanti))
     if (Paired)
       stop("'VarY' is missing for paired test")
-    GardX <- !is.na(GardX)
+    GardX <- !is.na(VarQuanti)
   }
   VarQuanti <- VarQuanti[GardX]
   if (Paired) {
@@ -166,7 +187,7 @@ ZTest <- function(VarQuanti, VarY = NULL, Paired = FALSE,
     if (S < 10 * .Machine$double.eps * abs(M))
       stop("Data are essentially constant.", call. = FALSE)
     ZStat <- (M - Mu) / S
-    Methode <- if (paired) "Paired Z-test" else "One sample Z-test"
+    Methode <- if (Paired) "Paired Z-test" else "One sample Z-test"
     Estimation <- setNames(M, if (Paired) "mean difference" else "mean of x")
   } else {
     if (any(N < 30))

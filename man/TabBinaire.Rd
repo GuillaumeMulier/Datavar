@@ -2,6 +2,8 @@
 % Please edit documentation in R/TabBinaire.R
 \name{TabBinaire}
 \alias{TabBinaire}
+\alias{NoMessTabBinaire}
+\alias{SilentTabBinaire}
 \title{TabBinaire}
 \usage{
 TabBinaire(
@@ -15,6 +17,45 @@ TabBinaire(
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
   Test = "none",
+  P0 = NULL,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Grapher = FALSE,
+  Simplif = FALSE
+)
+
+NoMessTabBinaire(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomCateg = NULL,
+  NomLabel = NULL,
+  ConfInter = c("none", "normal", "exact", "jeffreys"),
+  ConfLevel = 0.95,
+  Test = "none",
+  P0 = NULL,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Grapher = FALSE,
+  Simplif = FALSE
+)
+
+SilentTabBinaire(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomCateg = NULL,
+  NomLabel = NULL,
+  ConfInter = c("none", "normal", "exact", "jeffreys"),
+  ConfLevel = 0.95,
+  Test = "none",
+  P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
   Langue = "eng",
@@ -43,6 +84,9 @@ TabBinaire(
 
 \item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher").}
 
+\item{P0}{Either length 1 or length 2 numeric vector between 0 and 1 giving the probability(ies) under H0.
+When 1 proportion is supplied, it is assigned to value NomCateg. If unspecified equal probability to all groups.}
+
 \item{ChifPval}{Number of decimal for PValue.}
 
 \item{NomCol}{Vector of strings to name each column of the output. Automatic display if unspecified.}
@@ -64,6 +108,7 @@ You can also use it to cross it with a categorial variable and perform a compari
 }
 \examples{
 TabBinaire(mtcars, am)
+TabBinaire(mtcars, am, Test = "binomial")
 TabBinaire(mtcars, am, vs)
 TabBinaire(mtcars, am, vs,
            NomCateg = "0", NomLabel = "Automatic transmission",

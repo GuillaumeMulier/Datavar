@@ -2,6 +2,8 @@
 % Please edit documentation in R/TabQuanti.R
 \name{TabQuanti}
 \alias{TabQuanti}
+\alias{NoMessTabQuanti}
+\alias{SilentTabQuanti}
 \title{TabQuanti}
 \usage{
 TabQuanti(
@@ -13,6 +15,41 @@ TabQuanti(
   NomVariable = NULL,
   Mode = "mediqrg",
   Test = "none",
+  Mu0 = 0,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Grapher = FALSE,
+  Simplif = TRUE
+)
+
+NoMessTabQuanti(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomVariable = NULL,
+  Mode = "mediqrg",
+  Test = "none",
+  Mu0 = 0,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Grapher = FALSE,
+  Simplif = TRUE
+)
+
+SilentTabQuanti(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomVariable = NULL,
+  Mode = "mediqrg",
+  Test = "none",
+  Mu0 = 0,
   ChifPval = 2,
   NomCol = NULL,
   Langue = "eng",
@@ -58,6 +95,7 @@ You can also use it to cross it with a categorial variable and perform a compari
 }
 \examples{
 TabQuanti(.Data = mtcars, x = mpg, Prec = 1)
+TabQuanti(.Data = mtcars, x = mpg, Prec = 1, Test = "signed-wilcoxon", Mu0 = 20)
 TabQuanti(.Data = mtcars, x = mpg, y = am, Prec = 1)
 TabQuanti(.Data = mtcars, x = mpg, y = am, Prec = 1,
           NomVariable = "Miles per gallon",

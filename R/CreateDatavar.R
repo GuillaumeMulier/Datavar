@@ -19,6 +19,7 @@
 #'   \item ordonnee: for categorical variables, TRUE if you want to let the classes in order and FALSE if you want them by descending count;
 #'   \item mode: for quantitative variables, string indicating which statistics to be displayed (moy for mean, med for median, sd for standard error, iq for interquartile interval and rg for range);
 #'   \item test: string indicating the statistical test to perform (none for none, student for Student's test, wilcoxon for Wilcoxon's signed rank test, chisq for Chi-2 test and fisher for Fisher's test);
+#'   \item mu0: string indicating the theoretical mean to compare to for quantitative variables and the proportion of each class separated by ';' for binary and categorical variables;
 #'   \item chif_pval: number of decimals for Pvalues.
 #' }
 #'
@@ -46,6 +47,7 @@ CreateDatavar <- function(.Data,
                         ordonnee    = NA,
                         mode        = NA_character_,
                         test        = NA_character_,
+                        mu0         = NA_character_,
                         chif_pval   = NA_integer_)
 
   Datavar$type <- vapply(Datavar$var, DetectionType, character(1), .Data = .Data, LimiteDetection = Options$LimiteDetection)
@@ -63,6 +65,7 @@ CreateDatavar <- function(.Data,
   Datavar$mode <- ifelse(Datavar$type == "quanti", Options$Mode, NA_character_)
   Datavar$test <- ifelse(Datavar$type == "quanti", Options$Test["quanti"],
                          ifelse(Datavar$type == "quali", Options$Test["quali"], Options$Test["binary"]))
+  Datavar$mu0[Datavar$type == "quanti"] <- vapply(Datavar$var[Datavar$type == "quanti"], \(x) as.character(round(mean(.Data[[x]], na.rm = TRUE), Datavar$prec[Datavar$var == x])), character(1))
   Datavar$chif_pval <- Options$ChifPval
 
   return(Datavar)

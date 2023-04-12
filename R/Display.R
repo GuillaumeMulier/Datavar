@@ -21,7 +21,8 @@ print.tab_description <- function(x, ...) {
   x2 <- split(x2, x2[, 1])
   purrr::walk(names(x2),
               \(var) {
-                cat(PrintVar(paste0(var, " :\n")))
+                var_modif <- gsub("\\&|\\*|;|~", "", var)
+                cat(PrintVar(paste0(var_modif, " :\n")))
                 print.data.frame(x2[[var]][, -1], row.names = FALSE)
                 cat(cli::col_br_red("----------------------------------------"), "\n")
               })
@@ -150,22 +151,22 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     if (attr(TabDescription, "Grapher")) {
       # Hacky way, but if I don't supply all Null lines with blank ggplots, there is a print in console and if I don't put ggplots in them, [NULL] in the output
       # I still get a warning so I decided to suppress it for now
-      LignesNULL <- purrr::map_lgl(ResDescription[, 3], ~ length(.x) < 2)
-      LignesGG <- which(purrr::map_int(ResDescription[, 3], length) > 1)
+      LignesNULL <- purrr::map_lgl(ResDescription[, if (attr(Tableau, "Comparer")) 4 else 3], ~ length(.x) < 2)
+      LignesGG <- which(purrr::map_int(ResDescription[, if (attr(Tableau, "Comparer")) 4 else 3], length) > 1)
       ListeImg <- as.list(rep(getOption("blanc_datavar"), sum(LignesNULL)))
-      suppressWarnings(ResDescription[LignesNULL, 3] <- ListeImg)
+      suppressWarnings(ResDescription[LignesNULL, if (attr(Tableau, "Comparer")) 4 else 3] <- ListeImg)
     }
     FlexDescription <- flextable::flextable(ResDescription)
     if (attr(TabDescription, "Grapher")) {
-      FlexDescription <- flextable::compose(FlexDescription, i = LignesNULL, j = 3, value = flextable::as_paragraph(flextable::as_image(src = ., height = 1, width = 1)), use_dot = TRUE)
+      FlexDescription <- flextable::compose(FlexDescription, i = LignesNULL, j = if (attr(Tableau, "Comparer")) 4 else 3, value = flextable::as_paragraph(flextable::as_image(src = ., height = 1, width = 1)), use_dot = TRUE)
       if (any(TabLabels$type == "quanti")) {
         TabLabels$debut[TabLabels$type == "quanti"] <- purrr::map_dbl(TabLabels$label[TabLabels$type == "quanti"], ~ 1 + which(ResDescription[, 1] == .x)[1])
         TabLabels$fin[TabLabels$type == "quanti"] <- purrr::map_dbl(which(TabLabels$type == "quanti"), ~ if (.x == nrow(TabLabels)) {nrow(ResDescription)} else {which(ResDescription[, 1] == TabLabels$label[.x + 1]) - 1})
         FlexDescription <- purrr::reduce2(TabLabels$debut[TabLabels$type == "quanti"], TabLabels$fin[TabLabels$type == "quanti"],
-                                          \(data, d, f) flextable::merge_at(data, i = seq(d, f), j = 3), .init = FlexDescription)
+                                          \(data, d, f) flextable::merge_at(data, i = seq(d, f), j = if (attr(Tableau, "Comparer")) 4 else 3), .init = FlexDescription)
       }
-      FlexDescription <- flextable::compose(FlexDescription, i = LignesGG[LignesGG %in% TabLabels$debut], j = 3, value = flextable::as_paragraph(flextable::gg_chunk(value = ., height = 1, width = 1)), use_dot = TRUE)
-      FlexDescription <- flextable::compose(FlexDescription, i = LignesGG[!LignesGG %in% TabLabels$debut], j = 3, value = flextable::as_paragraph(flextable::gg_chunk(value = ., height = .25, width = 1)), use_dot = TRUE)
+      FlexDescription <- flextable::compose(FlexDescription, i = LignesGG[LignesGG %in% TabLabels$debut], j = if (attr(Tableau, "Comparer")) 4 else 3, value = flextable::as_paragraph(flextable::gg_chunk(value = ., height = 1, width = 1)), use_dot = TRUE)
+      FlexDescription <- flextable::compose(FlexDescription, i = LignesGG[!LignesGG %in% TabLabels$debut], j = if (attr(Tableau, "Comparer")) 4 else 3, value = flextable::as_paragraph(flextable::gg_chunk(value = ., height = .25, width = 1)), use_dot = TRUE)
     }
     FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::merge_at(data, i = x, j = seq_len(flextable::ncol_keys(FlexDescription))), .init = FlexDescription)
     FlexDescription <- purrr::reduce(LignesFusion, \(data, x) flextable::fontsize(data, i = x, j = 1, size = BaseSize * 1.2) |> flextable::bold(i = x, j = 1), .init = FlexDescription)
@@ -173,8 +174,8 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
     FlexDescription <- ThemeDescription(FlexDescription,
                                         BaseSize = BaseSize,
-                                        Separations = 2,
-                                        ColNum = 2)
+                                        Separations = if (attr(Tableau, "Comparer")) c(2, 3) else 2,
+                                        ColNum = if (attr(Tableau, "Comparer")) c(2, 3) else 2)
   } else {
     if (attr(TabDescription, "tests_atypiques") & attr(TabDescription, "Comparer")) {
       TabModifP <- attr(TabDescription, "modif_p")

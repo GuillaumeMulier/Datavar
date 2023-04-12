@@ -1,6 +1,6 @@
 Package: Datavar
 Title: Description of your dataset
-Version: 0.0.2.1
+Version: 0.0.2.2
 Authors@R: 
     person(given = "Guillaume",
            family = "Mulier",

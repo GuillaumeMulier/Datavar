@@ -27,6 +27,7 @@
 #'
 #' @examples
 #' TabQuanti(.Data = mtcars, x = mpg, Prec = 1)
+#' TabQuanti(.Data = mtcars, x = mpg, Prec = 1, Test = "signed-wilcoxon", Mu0 = 20)
 #' TabQuanti(.Data = mtcars, x = mpg, y = am, Prec = 1)
 #' TabQuanti(.Data = mtcars, x = mpg, y = am, Prec = 1,
 #'           NomVariable = "Miles per gallon",
@@ -39,6 +40,7 @@ TabQuanti <- function(.Data,
                       NomVariable = NULL,
                       Mode = "mediqrg",
                       Test = "none",
+                      Mu0 = 0,
                       ChifPval = 2,
                       NomCol = NULL,
                       Langue = "eng",
@@ -70,19 +72,26 @@ TabQuanti <- function(.Data,
       }
     )
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
+    if (Test != "none") {
+      Mu0 <- VerifArgs(Mu0, VarQuanti, x)
+      Test <- VerifTest(Test, "quanti", 1, VarQuanti, y, x)
+      NomVariable <- paste0(NomVariable, sprintf(paste0(" (n, %%) [*&mu;~0~=", Prec, "*]"), Mu0))
+      Pval <- MakeTest(VarQuanti, NULL, Test, rlang::quo_name(x), NULL, ChifPval, Mu = Mu0)
+    }
 
     # Table of results
     Tableau <- data.frame(var = NomVariable,
                           eff = Labelliseurs,
                           stats = Statistics,
                           stringsAsFactors = FALSE)
+    if (Test != "none") Tableau$pval <- c("", Pval, rep("", nrow(Tableau) - 2))
     if (Grapher) Tableau$graphes <- c(list(GGHist(VarQuanti)), rep("", nrow(Tableau) - 1))
     attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
     if (is.null(NomCol)) {
-      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", "Graphes") else c("Variable", "Label", "Statistiques")}
-      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", "Graphs") else c("Variable", "Label", "Statistics")}
+      if (Langue == "fr") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue", "Graphes") else c("Variable", "Label", "Statistiques", if (Test == "none") NULL else "PValue")}
+      else if (Langue == "eng") {colnames(Tableau) <- if (Grapher) c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue", "Graphs") else c("Variable", "Label", "Statistics", if (Test == "none") NULL else "PValue")}
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for ", PrintVar(rlang::quo_name(x)), "."), call. = FALSE)
       colnames(Tableau) <- NomCol
@@ -154,6 +163,82 @@ TabQuanti <- function(.Data,
 
   class(Tableau) <- c("tab_description", class(Tableau))
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
+  return(Tableau)
+
+}
+
+
+#' @rdname TabQuanti
+#' @importFrom rlang !!
+NoMessTabQuanti <- function(.Data,
+                            x,
+                            y = NULL,
+                            Prec = 0,
+                            PMissing = NULL,
+                            NomVariable = NULL,
+                            Mode = "mediqrg",
+                            Test = "none",
+                            Mu0 = 0,
+                            ChifPval = 2,
+                            NomCol = NULL,
+                            Langue = "eng",
+                            Grapher = FALSE,
+                            Simplif = TRUE) {
+
+  x <- rlang::enexpr(x)
+  y <- rlang::enexpr(y)
+  suppressMessages(Tableau <- TabQuanti(.Data = .Data,
+                                        x = !!x,
+                                        y = !!y,
+                                        Prec = Prec,
+                                        PMissing = PMissing,
+                                        NomVariable = NomVariable,
+                                        Mode = Mode,
+                                        Test = Test,
+                                        Mu0 = Mu0,
+                                        ChifPval = ChifPval,
+                                        NomCol = NomCol,
+                                        Langue = Langue,
+                                        Grapher = Grapher,
+                                        Simplif = Simplif))
+  return(Tableau)
+
+}
+
+
+#' @rdname TabQuanti
+#' @importFrom rlang !!
+SilentTabQuanti <- function(.Data,
+                            x,
+                            y = NULL,
+                            Prec = 0,
+                            PMissing = NULL,
+                            NomVariable = NULL,
+                            Mode = "mediqrg",
+                            Test = "none",
+                            Mu0 = 0,
+                            ChifPval = 2,
+                            NomCol = NULL,
+                            Langue = "eng",
+                            Grapher = FALSE,
+                            Simplif = TRUE) {
+
+  x <- rlang::enexpr(x)
+  y <- rlang::enexpr(y)
+  suppressMessages(suppressWarnings(Tableau <- TabQuanti(.Data = .Data,
+                                                         x = !!x,
+                                                         y = !!y,
+                                                         Prec = Prec,
+                                                         PMissing = PMissing,
+                                                         NomVariable = NomVariable,
+                                                         Mode = Mode,
+                                                         Test = Test,
+                                                         Mu0 = Mu0,
+                                                         ChifPval = ChifPval,
+                                                         NomCol = NomCol,
+                                                         Langue = Langue,
+                                                         Grapher = Grapher,
+                                                         Simplif = Simplif)))
   return(Tableau)
 
 }

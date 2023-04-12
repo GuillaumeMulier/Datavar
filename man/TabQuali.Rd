@@ -3,6 +3,8 @@
 \encoding{UTF-8}
 \name{TabQuali}
 \alias{TabQuali}
+\alias{NoMessTabQuali}
+\alias{SilentTabQuali}
 \title{TabQuali}
 \usage{
 TabQuali(
@@ -15,6 +17,45 @@ TabQuali(
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
   Test = "none",
+  P0 = NULL,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Ordonnee = FALSE,
+  Grapher = FALSE,
+  Simplif = TRUE
+)
+
+NoMessTabQuali(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomVariable = NULL,
+  ConfInter = c("none", "normal", "exact", "jeffreys"),
+  ConfLevel = 0.95,
+  Test = "none",
+  P0 = NULL,
+  ChifPval = 2,
+  NomCol = NULL,
+  Langue = "eng",
+  Ordonnee = FALSE,
+  Grapher = FALSE,
+  Simplif = TRUE
+)
+
+SilentTabQuali(
+  .Data,
+  x,
+  y = NULL,
+  Prec = 0,
+  PMissing = NULL,
+  NomVariable = NULL,
+  ConfInter = c("none", "normal", "exact", "jeffreys"),
+  ConfLevel = 0.95,
+  Test = "none",
+  P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
   Langue = "eng",
@@ -42,6 +83,8 @@ TabQuali(
 
 \item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher").}
 
+\item{P0}{Numeric vector of length the number of categories in x between 0 and 1 giving the probability(ies) under H0. If unspecified equal probability to all groups.}
+
 \item{ChifPval}{Number of decimals for the Pvalue if test is performed.}
 
 \item{NomCol}{Vector of strings to name each column of the output. Automatic display if unspecified.}
@@ -65,6 +108,7 @@ You can also use it to cross it with a categorial variable and perform a compari
 }
 \examples{
 TabQuali(mtcars, cyl)
+TabQuali(mtcars, cyl, Test = "multinomial")
 TabQuali(mtcars, cyl, am)
 TabQuali(mtcars, cyl, am,
          NomVariable = "Number of cylinders",

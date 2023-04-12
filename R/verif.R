@@ -59,7 +59,7 @@ VerifArgs <- function(...) {
                 NomLabel = function(NomLabel, VarBinaire, x) {
                   if (is.null(NomLabel)) {
                     NomLabel <- paste0(rlang::quo_name(x), "=", names(table(VarBinaire, useNA = "no"))[length(names(table(VarBinaire, useNA = "no")))])
-                    message(paste0("Unspecified label for variable \"", PrintVar(rlang::quo_name(x)), "\".Default label will be \"",
+                    message(paste0("Unspecified label for variable \"", PrintVar(rlang::quo_name(x)), "\". Default label will be \"",
                                    NomLabel, "\"."))
                   }
                   return(NomLabel)
@@ -125,6 +125,13 @@ VerifArgs <- function(...) {
                     stop(paste0("For \"", PrintVar(rlang::quo_name(x)), "\", \"", PrintArg("P0"), "\" should contain probabilities between 0 and 1."), call. = FALSE)
                   return(P0)
                 },
+                Mu0 = function(Mu0, VarQuanti, x) {
+                  if (length(Mu0) != 1 || !is.numeric(Mu0))
+                    stop(paste0("For \"", PrintVar(rlang::quo_name(x)), "\", \"", PrintArg("Mu0"), "\" should contain the theoretical mean you want to. It should be a numeric vector of length 1."), call. = FALSE)
+                  if (sum(Mu0 > range(VarQuanti, na.rm = TRUE)) != 1)
+                    message(Information(paste0(" For variable \"", PrintVar(rlang::quo_name(x)), "\" you supplied a \"", PrintArg("Mu0"), "\" that isn't in the range of the variable. Maybe it is an error ?")))
+                  return(Mu0)
+                },
                 Mode = function(Mode, x, Langue, Prec, PMissing) {
                   Groupes <- dplyr::tibble(
                     token = c("n", "miss", "moy", "sd", "med", "iq", "rg"),
@@ -179,21 +186,22 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
   if (NClasses == 1) {
     if (TypeVar == "binaire") {
       if (Test %nin% c("ztest", "binomial", "chisq", "none"))
-        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x), ". Choose one of none, ztest, binomial or chisq."), call. = FALSE)
     } else if (TypeVar == "quali") {
       if (Test %nin% c("ztest", "multinomial", "chisq", "none"))
-        stop(paste0("Test unadapted to a qualitative variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a qualitative variable: ", PrintVar(x), ". Choose one of none, ztest, multinomial or chisq."), call. = FALSE)
     } else if (TypeVar == "quanti") {
       if (Test %nin% c("ztest", "student", "studentvar", "signed-wilcoxon", "none"))
-        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, student or studentvar."), call. = FALSE)
+      if (Test == "studentvar") Test <- "student"
     }
   } else if (NClasses == 2) {
     if (TypeVar == "binaire") {
       if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x), ". Choose one of none, ztest, fisher or chisq."), call. = FALSE)
     } else if (TypeVar == "quali") {
       if (Test %nin% c("fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
     } else if (TypeVar == "quanti") {
       if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
         stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)

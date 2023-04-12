@@ -44,8 +44,8 @@ GetM <- function(x, Prec, na.rm = TRUE) if (grepl("\\(", Prec)) sprintf(Prec, su
 
 
 #' Print variable in message
-PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_br_white)(x)
-PrintArg <- function(x) cli::combine_ansi_styles(cli::style_italic, cli::bg_br_cyan, cli::col_br_white)(x)
+PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_black)(x)
+PrintArg <- function(x) cli::combine_ansi_styles(cli::style_italic, cli::bg_br_cyan, cli::col_black)(x)
 
 
 #' Borders and formatting for flextable

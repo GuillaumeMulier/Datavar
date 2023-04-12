@@ -17,7 +17,8 @@
 #' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher").
-#' @param P0 Either length 1 or length 2 numeric vector between 0 and 1 giving the probability(ies) under H0. When 1 proportion is supplied, it is assigned to value NomCateg.
+#' @param P0 Either length 1 or length 2 numeric vector between 0 and 1 giving the probability(ies) under H0.
+#' When 1 proportion is supplied, it is assigned to value NomCateg. If unspecified equal probability to all groups.
 #' @param ChifPval Number of decimal for PValue.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
@@ -30,6 +31,7 @@
 #'
 #' @examples
 #' TabBinaire(mtcars, am)
+#' TabBinaire(mtcars, am, Test = "binomial")
 #' TabBinaire(mtcars, am, vs)
 #' TabBinaire(mtcars, am, vs,
 #'            NomCateg = "0", NomLabel = "Automatic transmission",
@@ -98,7 +100,7 @@ TabBinaire <- function(.Data,
     if (Test != "none") {
       P0 <- VerifArgs(P0, VarBinaire, x)
       Test <- VerifTest(Test, "binaire", 1, VarBinaire, y, x)
-      NomLabel <- paste0(NomLabel, " (*&pi;~0~=", paste(round(P0, 2), collapse = ";"), "*)")
+      NomLabel <- paste0(NomLabel, " (*&pi;~0~=", paste(round(P0, 2), collapse = "/"), "*)")
       Pval <- c(MakeTest(VarBinaire, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), "")
     }
 
@@ -195,6 +197,90 @@ TabBinaire <- function(.Data,
   class(Tableau) <- c("tab_description", class(Tableau))
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
   attr(Tableau, "Comparer") <- Test != "none"
+  return(Tableau)
+
+}
+
+
+#' @rdname TabBinaire
+#' @importFrom rlang !!
+NoMessTabBinaire <- function(.Data,
+                             x,
+                             y = NULL,
+                             Prec = 0,
+                             PMissing = NULL,
+                             NomCateg = NULL,
+                             NomLabel = NULL,
+                             ConfInter = c("none", "normal", "exact", "jeffreys"),
+                             ConfLevel = .95,
+                             Test = "none",
+                             P0 = NULL,
+                             ChifPval = 2,
+                             NomCol = NULL,
+                             Langue = "eng",
+                             Grapher = FALSE,
+                             Simplif = FALSE) {
+
+  x <- rlang::enexpr(x)
+  y <- rlang::enexpr(y)
+  suppressMessages(Tableau <- TabBinaire(.Data = .Data,
+                                         x = !!x,
+                                         y = !!y,
+                                         Prec = Prec,
+                                         PMissing = PMissing,
+                                         NomCateg = NomCateg,
+                                         NomLabel = NomLabel,
+                                         ConfInter = ConfInter,
+                                         ConfLevel = ConfLevel,
+                                         Test = Test,
+                                         P0 = P0,
+                                         ChifPval = ChifPval,
+                                         NomCol = NomCol,
+                                         Langue = Langue,
+                                         Grapher = Grapher,
+                                         Simplif = Simplif))
+  return(Tableau)
+
+}
+
+
+#' @rdname TabBinaire
+#' @importFrom rlang !!
+SilentTabBinaire <- function(.Data,
+                             x,
+                             y = NULL,
+                             Prec = 0,
+                             PMissing = NULL,
+                             NomCateg = NULL,
+                             NomLabel = NULL,
+                             ConfInter = c("none", "normal", "exact", "jeffreys"),
+                             ConfLevel = .95,
+                             Test = "none",
+                             P0 = NULL,
+                             ChifPval = 2,
+                             NomCol = NULL,
+                             Langue = "eng",
+                             Grapher = FALSE,
+                             Simplif = FALSE) {
+
+  x <- rlang::enexpr(x)
+  y <- rlang::enexpr(y)
+  suppressMessages(suppressWarnings(Tableau <- TabBinaire(.Data = .Data,
+                                                          x = !!x,
+                                                          y = !!y,
+                                                          Prec = Prec,
+                                                          PMissing = PMissing,
+                                                          NomCateg = NomCateg,
+                                                          NomLabel = NomLabel,
+                                                          ConfInter = ConfInter,
+                                                          ConfLevel = ConfLevel,
+                                                          Test = Test,
+                                                          P0 = P0,
+                                                          ChifPval = ChifPval,
+                                                          NomCol = NomCol,
+                                                          Langue = Langue,
+                                                          Grapher = Grapher,
+                                                          Simplif = Simplif)))
   return(Tableau)
 
 }

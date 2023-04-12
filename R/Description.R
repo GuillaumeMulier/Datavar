@@ -29,6 +29,7 @@ VarDescr <- function(.Data,
       NomVariable = if (!is.na(LigneDatavar[["nomvariable"]])) as.character(LigneDatavar[["nomvariable"]]) else NULL,
       Mode = if (!is.na(LigneDatavar[["mode"]])) as.character(LigneDatavar[["mode"]]) else "mediqrg",
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
+      Mu0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(LigneDatavar[["mu0"]]) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2
     )
   } else if (LigneDatavar[["type"]] == "binary") {
@@ -39,6 +40,7 @@ VarDescr <- function(.Data,
       NomCateg = if (!is.na(LigneDatavar[["nomcateg"]])) as.character(LigneDatavar[["nomcateg"]]) else NULL,
       NomLabel = if (!is.na(LigneDatavar[["label"]])) as.character(LigneDatavar[["label"]]) else NULL,
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
+      P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
       ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95
@@ -51,6 +53,7 @@ VarDescr <- function(.Data,
       NomVariable = if (!is.na(LigneDatavar[["nomvariable"]])) as.character(LigneDatavar[["nomvariable"]]) else NULL,
       Ordonnee = if (!is.na(LigneDatavar[["ordonnee"]])) as.logical(LigneDatavar[["ordonnee"]]) else TRUE,
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
+      P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
       ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95
@@ -144,16 +147,19 @@ Description <- function(.Data,
   # Retrieve metadata to present results
   # Add them as attributes to store them and use them with flextable to create footnotes automatically on which tests are made
   row.names(Tableau) <- NULL
-  if (Comparer & !is.null(y)) {
+  if (Comparer) {
     if (Langue == "fr") {
       DicoVariables <- c("quanti" = "quantitatives", "quali" = "catégorielles", "binary" = "binaires")
       DicoTests <- c("student" = "test T de Student", "studentvar" = "test T de Student avec correction de Welch", "ztest" = "test Z", "wilcoxon" = "test de Wilcoxon-Mann-Whitney",
+                     "signed-wilcoxon" = "test des rangs signés de Wilcoxon", "binomial" = "test binomial exact", "multinomial" = "test multinomial exact",
                      "kruskal" = "test de Kruskal-Wallis", "fisher" = "test exact de Fisher", "chisq" = "test du Khi-2", "mcnemar" = "test de McNemar")
     } else {
       DicoVariables <- c("quanti" = "quantitative", "quali" = "categorical", "binary" = "binary")
       DicoTests <- c("student" = "Student's T-test", "studentvar" = "Student's T-test with Welch's correction", "ztest" = "Z-test", "wilcoxon" = "Wilcoxon-Mann-Whitney's test",
+                     "signed-wilcoxon" = "signed ranks' Wilcoxon test", "binomial" = "exact binomial test", "multinomial" = "exact multinomial test",
                      "kruskal" = "Kruskal-Wallis' test", "fisher" = "exact Fisher's test", "chisq" = "Khi-2 test", "mcnemar" = "McNemar test")
     }
+    if (is.null(y)) StockMeta$tests$test[StockMeta$tests$test == "studentvar"] <- "student"
     Testings <- StockMeta$tests |>
       dplyr::filter(test != "none") |>
       dplyr::mutate(test = ifelse(test == "ztest" & type %in% c("quali", "binary"), "chisq", test)) |>
@@ -198,13 +204,11 @@ Description <- function(.Data,
         }
       })
     }
-  } else if (Comparer & is.null(y)) {
-    # TODO #
   }
 
   class(Tableau) <- c("tab_description", "data.frame")
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
-  attr(Tableau, "Comparer") <- Comparer & !is.null(y) & any(.Datavar$test[.Datavar$var %in% .Listevar] != "none")
+  attr(Tableau, "Comparer") <- Comparer & any(.Datavar$test[.Datavar$var %in% .Listevar] != "none")
   return(Tableau)
 
 }
