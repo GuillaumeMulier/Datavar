@@ -58,7 +58,7 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
   } else if (Test == "student") {
 
     if (any(Y != Y[1])) { # Multivariate
-      if (any(tapply(X, Y, \(x) shapiro.test(x)$p.value) < .05))
+      if (ShapiroTest(X, Y, NameX) < .05)
         message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
       if (var.test(X ~ Y)$p.value < .05) {
         Longueurs <- as.numeric(table(Y))
@@ -71,14 +71,14 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
       Pval <- FormatPval(t.test(X ~ Y, var.equal = TRUE)$p.value, S)
 
     } else { # Univariate
-      if (shapiro.test(X)$p.value < .05)
+      if (ShapiroTest(X, NULL, NameX) < .05)
         message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
       Pval <- FormatPval(t.test(X, mu = Mu)$p.value, S)
 
     }
 
   } else if (Test == "studentvar") {
-    if (any(tapply(X, Y, \(x) shapiro.test(x)$p.value) < .05))
+    if (ShapiroTest(X, Y, NameX) < .05)
       message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
     if (var.test(X ~ Y)$p.value >= .05)
       message(Information(paste0("For variable \"", PrintVar(NameX), "\", the F-test doesn't find significant difference between variances so classic T-test could be performed.")))
@@ -94,6 +94,16 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
       Pval <- FormatPval(wilcox.test(X, mu = Mu)$p.value, S)
 
     }
+
+  } else if (Test == "anova") {
+    if (ShapiroTest(X, Y, NameX) < .05)
+      message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. ANOVA is robust to that departure (unless there are very skewed distributions and very different across groups) and you may check with QQplot for example that it is not that bad to perform the test. Else consider using Kruskal-Wallis test.")))
+    if (car::leveneTest(X, as.factor(Y))[1, "Pr(>F)"] < .05)
+      message(Information(paste0("For variable \"", PrintVar(NameX), "\", Levene's test find non-equality of variances across groups. ANOVA is robust to this assumption if groups are of comparable size, else consider using Kruskal-Wallis test. Sample sizes are ", paste(table(Y), collapse = "/"), ".")))
+    Pval <- FormatPval(summary(aov(X ~ as.factor(Y)))[[1]][1, "Pr(>F)"], S)
+
+  } else if (Test == "kruskal-wallis") {
+    Pval <- FormatPval(kruskal.test(X ~ Y)$p.value, S)
 
   } else {
     stop("Safety stop.")
@@ -223,6 +233,31 @@ ZTest <- function(VarQuanti, VarY = NULL, Paired = FALSE,
   class(rval) <- "htest"
 
   return(rval)
+
+}
+
+
+#' Wrapper function because of the error of shapiro.test with more than 5000 observations.
+#'
+#' @param x Variable to test normality.
+#' @param y Independant variable if there is one, else let NULL
+#' @param NameX Name of variable.
+#'
+#' @return Pvalue
+ShapiroTest <- function(x, y = NULL, NameX) {
+
+  if (is.null(y)) {
+    PetitP <- tryCatch(shapiro.test(x)$p.value,
+                       error = function(e) {
+                         message(Information(paste0("For variable \"", PrintVar(NameX), "\", there is more than 5000 or less than 3 rows / all identical values. The Shapiro test cannot be performed, and you can inspect graphically with QQplot your data. In case of very large sample size, consider using a Z-test.")))
+                         return(1)
+                       })
+
+  } else {
+    PetitP <- min(tapply(x, y, ShapiroTest, NameX = NameX))
+  }
+
+  return(PetitP)
 
 }
 

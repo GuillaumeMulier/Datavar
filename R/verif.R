@@ -180,7 +180,7 @@ VerifArgs <- function(...) {
 #'
 VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
 
-  Test <- match.arg(Test, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal", "signed-wilcoxon",
+  Test <- match.arg(Test, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal-wallis", "signed-wilcoxon", "anova",
                             "fisher", "chisq", "binomial", "multinomial", "mcnemar"))
 
   if (NClasses == 1) {
@@ -204,10 +204,19 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
         stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
     } else if (TypeVar == "quanti") {
       if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
-        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x)), call. = FALSE)
+        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, student or studentvar."), call. = FALSE)
     }
   } else if (NClasses > 2) {
-    stop("Tests not supported yet (more than 2 Classes).", call. = FALSE)
+    if (TypeVar == "binaire") {
+      if (Test %nin% c("fisher", "chisq", "none"))
+        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
+    } else if (TypeVar == "quali") {
+      if (Test %nin% c("fisher", "chisq", "none"))
+        stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
+    } else if (TypeVar == "quanti") {
+      if (Test %nin% c("anova", "kruskal-wallis", "none"))
+        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, anova or kruskal-wallis."), call. = FALSE)
+    }
   }
 
   return (Test)

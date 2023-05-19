@@ -109,7 +109,7 @@ Description <- function(.Data,
                         Langue = "eng",
                         Grapher = FALSE,
                         Simplif = TRUE,
-                        Comparer = TRUE) {
+                        Comparer = FALSE) {
 
   y <- rlang::enexpr(y)
   if (!is.null(y)) .Listevar <- .Listevar[.Listevar != rlang::quo_name(y)]
@@ -121,7 +121,8 @@ Description <- function(.Data,
   stopifnot(is.logical(Comparer), length(Comparer) == 1, is.logical(Grapher), length(Grapher) == 1)
   if (!Comparer) .Datavar$test <- "none"
   .Datavar <- VerifArgs(.Datavar, .Listevar)
-  .Datavar$test <- purrr::map_chr(.Datavar$test, ~ match.arg(.x, c("none", "student", "ztest", "wilcoxon", "kruskal", "fisher", "chisq", "mcnemar")))
+  .Datavar$test <- purrr::map_chr(.Datavar$test, ~ match.arg(.x, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal-wallis", "signed-wilcoxon",
+                                                                   "anova", "fisher", "chisq", "binomial", "multinomial", "mcnemar")))
 
   Tableau <- purrr::map_dfr(
     .x = .Listevar,
@@ -152,12 +153,14 @@ Description <- function(.Data,
       DicoVariables <- c("quanti" = "quantitatives", "quali" = "catégorielles", "binary" = "binaires")
       DicoTests <- c("student" = "test T de Student", "studentvar" = "test T de Student avec correction de Welch", "ztest" = "test Z", "wilcoxon" = "test de Wilcoxon-Mann-Whitney",
                      "signed-wilcoxon" = "test des rangs signés de Wilcoxon", "binomial" = "test binomial exact", "multinomial" = "test multinomial exact",
-                     "kruskal" = "test de Kruskal-Wallis", "fisher" = "test exact de Fisher", "chisq" = "test du Khi-2", "mcnemar" = "test de McNemar")
+                     "kruskal" = "test de Kruskal-Wallis", "fisher" = "test exact de Fisher", "chisq" = "test du Khi-2", "mcnemar" = "test de McNemar",
+                     "anova" = "ANOVA")
     } else {
       DicoVariables <- c("quanti" = "quantitative", "quali" = "categorical", "binary" = "binary")
       DicoTests <- c("student" = "Student's T-test", "studentvar" = "Student's T-test with Welch's correction", "ztest" = "Z-test", "wilcoxon" = "Wilcoxon-Mann-Whitney's test",
                      "signed-wilcoxon" = "signed ranks' Wilcoxon test", "binomial" = "exact binomial test", "multinomial" = "exact multinomial test",
-                     "kruskal" = "Kruskal-Wallis' test", "fisher" = "exact Fisher's test", "chisq" = "Khi-2 test", "mcnemar" = "McNemar test")
+                     "kruskal" = "Kruskal-Wallis' test", "fisher" = "exact Fisher's test", "chisq" = "Khi-2 test", "mcnemar" = "McNemar test",
+                     "anova" = "ANOVA")
     }
     if (is.null(y)) StockMeta$tests$test[StockMeta$tests$test == "studentvar"] <- "student"
     Testings <- StockMeta$tests |>
@@ -238,7 +241,7 @@ NoMessDescription <- function(.Data,
                                           Langue = Langue,
                                           Grapher = Grapher,
                                           Simplif = Simplif,
-                                          Comparer = Comparer))
+                                          Comparer = FALSE))
   return(Tableau)
 
 }
@@ -255,7 +258,7 @@ SilentDescription <- function(.Data,
                               Langue = "eng",
                               Grapher = FALSE,
                               Simplif = TRUE,
-                              Comparer = TRUE) {
+                              Comparer = FALSE) {
 
   y <- rlang::enexpr(y)
   suppressMessages(suppressWarnings(Tableau <- Description(.Data = .Data,

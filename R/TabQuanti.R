@@ -75,7 +75,7 @@ TabQuanti <- function(.Data,
     if (Test != "none") {
       Mu0 <- VerifArgs(Mu0, VarQuanti, x)
       Test <- VerifTest(Test, "quanti", 1, VarQuanti, y, x)
-      NomVariable <- paste0(NomVariable, sprintf(paste0(" (n, %%) [*&mu;~0~=", Prec, "*]"), Mu0))
+      NomVariable <- paste0(NomVariable, sprintf(paste0(" [*&mu;~0~=", Prec, "*]"), Mu0))
       Pval <- MakeTest(VarQuanti, NULL, Test, rlang::quo_name(x), NULL, ChifPval, Mu = Mu0)
     }
 

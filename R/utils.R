@@ -51,8 +51,6 @@ PrintArg <- function(x) cli::combine_ansi_styles(cli::style_italic, cli::bg_br_c
 #' Borders and formatting for flextable
 LargeBorder <- officer::fp_border(color = "#474747", style = "solid", width = 2.5)
 SlimBorder <- officer::fp_border(color = "#474747", style = "solid", width = 1.25)
-sysfonts::font_add_google(name = "Lato", family = "Lato")
-
 
 
 #' Information message

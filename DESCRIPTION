@@ -26,7 +26,8 @@ Imports:
     purrr (>= 0.3.4),
     rlang (>= 0.4.11),
     sysfonts (>= 0.8.8),
-    tidyr (>= 1.2.1)
+    tidyr (>= 1.2.1),
+    car
 Suggests: 
     waldo (>= 0.2.5),
     testthat (>= 3.0.0),
