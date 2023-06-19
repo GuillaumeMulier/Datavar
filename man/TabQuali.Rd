@@ -16,7 +16,9 @@ TabQuali(
   NomVariable = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -35,7 +37,9 @@ NoMessTabQuali(
   NomVariable = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -54,7 +58,9 @@ SilentTabQuali(
   NomVariable = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -81,7 +87,11 @@ SilentTabQuali(
 
 \item{ConfLevel}{Level of confidence for confidence intervals (by default 95\%).}
 
-\item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher").}
+\item{Poids}{Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.}
+
+\item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher", "multinomial").}
+
+\item{SMD}{Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.}
 
 \item{P0}{Numeric vector of length the number of categories in x between 0 and 1 giving the probability(ies) under H0. If unspecified equal probability to all groups.}
 
@@ -104,7 +114,9 @@ Description of categorical variables
 A function to describe categorical variables with count and percentage (+ binomial confidence interval if supplied).
 The difference with \code{TabBinaire} is that all categories are displayed.
 
-You can also use it to cross it with a categorial variable and perform a comparison test (chisq test, fisher test).
+You can also use it to cross it with a categorical variable and perform a comparison test (chisq test, fisher test).
+
+The standardized mean differences are computed accordingly to Yang and Dalton (2012).
 }
 \examples{
 TabQuali(mtcars, cyl)
@@ -113,6 +125,9 @@ TabQuali(mtcars, cyl, am)
 TabQuali(mtcars, cyl, am,
          NomVariable = "Number of cylinders",
          Test = "chisq", ChifPval = 3)
+}
+\references{
+Yang, D., & Dalton, J. E. (2012, April). A unified approach to measuring the effect size between two groups using SAS. In SAS global forum (Vol. 335, pp. 1-6).
 }
 \seealso{
 \code{\link[=Description]{Description()}}

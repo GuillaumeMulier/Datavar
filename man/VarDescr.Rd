@@ -10,6 +10,8 @@ VarDescr(
   y,
   NomCol,
   PMissing = NULL,
+  Poids = NULL,
+  SMD = FALSE,
   Simplif = TRUE,
   Langue,
   Grapher = FALSE
@@ -25,6 +27,10 @@ VarDescr(
 \item{NomCol}{Vector of the names of the columns.}
 
 \item{PMissing}{Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.}
+
+\item{Poids}{Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.}
+
+\item{SMD}{Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.}
 
 \item{Simplif}{Boolean. If TRUE (default value) the table will be simplified to remove number of missing data if there aren't any.}
 

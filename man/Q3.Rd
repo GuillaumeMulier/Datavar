@@ -4,7 +4,7 @@
 \alias{Q3}
 \title{Get the 3rd quartile}
 \usage{
-Q3(x, na.rm = TRUE)
+Q3(x, w = rep(1, length(x)))
 }
 \description{
 Get the 3rd quartile

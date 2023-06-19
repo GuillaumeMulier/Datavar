@@ -4,7 +4,7 @@
 \alias{Q1}
 \title{Get the 1st quartile}
 \usage{
-Q1(x, na.rm = TRUE)
+Q1(x, w = rep(1, length(x)))
 }
 \description{
 Get the 1st quartile

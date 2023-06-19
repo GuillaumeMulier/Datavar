@@ -4,7 +4,7 @@
 \alias{VerifTest}
 \title{Check the statistical test}
 \usage{
-VerifTest(Test, TypeVar, NClasses, Variable, y, x)
+VerifTest(Test, TypeVar, NClasses, Variable, y, x, Poids)
 }
 \arguments{
 \item{x}{String naming the test.}

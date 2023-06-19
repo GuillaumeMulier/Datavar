@@ -89,7 +89,7 @@ VerifArgs <- function(...) {
                   if (sum(!is.na(VarQuali)) == 0)
                     stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\" has 0 non missing values."), call. = FALSE)
                   if (length(unique(VarQuali[!is.na(VarQuali)])) == 1)
-                    message(paste0(Information(), " The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" only have 1 class."))
+                    message(Information(paste0(" The variable to describe \"", PrintVar(rlang::quo_name(x)), "\" only have 1 class.")))
                   if (Ordonnee) {
                     if (!is.factor(VarQuali))
                       VarQuali <- factor(VarQuali, levels = sort(unique(VarQuali[!is.na(VarQuali)])))
@@ -98,13 +98,37 @@ VerifArgs <- function(...) {
                   }
                   return(VarQuali)
                 },
-                ConfInter = function(ConfInter) {
-                  return(match.arg(ConfInter, c("none", "normal", "exact", "jeffreys")))
+                ConfInter = function(ConfInter, Poids) {
+                  ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
+                  if (all(Poids %in% c(0, 1))) {
+                    return(ConfInter)
+                  } else {
+                    if (ConfInter == "none") {
+                      return("none")
+                    } else {
+                      if (ConfInter != "normal")
+                        message(Information("With weights, only normal confidence interval is supported."))
+                      return("normal")
+                    }
+                  }
                 },
                 ConfLevel = function(ConfLevel, x) {
                   if (length(ConfLevel) != 1 || !is.numeric(ConfLevel) || ConfLevel <= 0 || ConfLevel >= 1)
                     stop(paste0("\"", PrintArg("ConfLevel"), "\" for variable \"", PrintVar(rlang::quo_name(x)), "\" must be a unique number between 0 and 1."), call. = FALSE)
                   return(ConfLevel)
+                },
+                Poids = function(Poids, x, Variable, .Data) {
+                  if (is.null(Poids)) {
+                    return(rep(1, length(Variable)))
+                  } else {
+                    Poids <- rlang::eval_tidy(Poids, data = .Data)
+                    if (any(is.na(Poids)))
+                      message(Information("Missing weights aren't supported and artificially put to 0."))
+                    Poids[is.na(Poids)] <- 0
+                    if (!is.numeric(Poids) || length(Poids) != length(Variable) || any(Poids < 0))
+                      stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", the argument \"", PrintArg("Poids"), "\" should either be NULL if you don't want to weight or the column of a numeric positive vector of the same length as the variable to describe."), call. = FALSE)
+                    return(Poids)
+                  }
                 },
                 P0 = function(P0, VarQuali, x) {
                   if (length(unique(VarQuali[!is.na(VarQuali)])) == 2) {
@@ -132,7 +156,7 @@ VerifArgs <- function(...) {
                     message(Information(paste0(" For variable \"", PrintVar(rlang::quo_name(x)), "\" you supplied a \"", PrintArg("Mu0"), "\" that isn't in the range of the variable. Maybe it is an error ?")))
                   return(Mu0)
                 },
-                Mode = function(Mode, x, Langue, Prec, PMissing) {
+                Mode = function(Mode, x, Langue, Prec, PMissing, HelperN) {
                   Groupes <- dplyr::tibble(
                     token = c("n", "miss", "moy", "sd", "med", "iq", "rg"),
                     label = c("N",
@@ -145,7 +169,7 @@ VerifArgs <- function(...) {
                               if (Langue == "fr") "(Ec-type)" else "(Sd)",
                               if (Langue == "fr") "Médiane" else "Median",
                               "(Q1-Q3)", "[min-max]"),
-                    precision = c("%i", if (is.null(PMissing)) "%i" else paste0("%i(%.", PMissing, "f%%)"), rep(Prec, 5)),
+                    precision = c(HelperN, if (is.null(PMissing)) HelperN else paste0(HelperN, "(%.", PMissing, "f%%)"), rep(Prec, 5)),
                     fct = list(GetN, GetM, MeanVar, SdVar, MedianVar, IQR, RangeVar),
                     groupe = c(1, 1, 2, 2, 3, 3, 4)
                   )
@@ -178,10 +202,14 @@ VerifArgs <- function(...) {
 #' @param x String naming the test.
 #' @param type_var Type of variable.
 #'
-VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x) {
+VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids) {
 
   Test <- match.arg(Test, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal-wallis", "signed-wilcoxon", "anova",
                             "fisher", "chisq", "binomial", "multinomial", "mcnemar"))
+  if (!all(Poids %in% c(0, 1)) & Test != "none") {
+    message(Information(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\": no test is supported with weighted population.")))
+    Test <- "none"
+  }
 
   if (NClasses == 1) {
     if (TypeVar == "binaire") {

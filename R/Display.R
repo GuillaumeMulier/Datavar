@@ -135,7 +135,11 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     if (attr(TabDescription, "crossed") == "univariate") {
       Widths <- if (attr(TabDescription, "Grapher")) c(2.5, 1.5, if (attr(TabDescription, "Comparer")) .5 else NULL, 1.2) else c(2.5, 1.5, if (attr(TabDescription, "Comparer")) .5 else NULL)
     } else {
-      Widths <- if (attr(TabDescription, "Comparer")) c(2.5, rep(1.5, ncol(TabDescription) - 3), .5) else c(2.5, rep(1.5, ncol(TabDescription) - 2))
+      if (attr(TabDescription, "difference_moy_stand")) {
+        Widths <- if (attr(TabDescription, "Comparer")) c(2.5, rep(1.5, ncol(TabDescription) - 4), .5, .5) else c(2.5, rep(1.5, ncol(TabDescription) - 3), .5)
+      } else {
+        Widths <- if (attr(TabDescription, "Comparer")) c(2.5, rep(1.5, ncol(TabDescription) - 3), .5) else c(2.5, rep(1.5, ncol(TabDescription) - 2))
+      }
     }
   }
   TabLabels <- attr(TabDescription, "tab_lab")
@@ -177,7 +181,7 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
                                         Separations = if (attr(TabDescription, "Comparer")) c(2, 3) else 2,
                                         ColNum = if (attr(TabDescription, "Comparer")) c(2, 3) else 2)
   } else {
-    if (attr(TabDescription, "tests_atypiques") & attr(TabDescription, "Comparer")) {
+    if (attr(TabDescription, "Comparer") && attr(TabDescription, "tests_atypiques")) {
       TabModifP <- attr(TabDescription, "modif_p")
       TabModifP <- purrr::map_dfr(seq_len(nrow(TabModifP)), ~ data.frame(lab = TabModifP$vars[[.x]], symbole = TabModifP$symbole[.x]) |> dplyr::mutate(lig = 1 + match(lab, FlexDescription[[1]])))
       ResDescription[[ncol(ResDescription)]][TabModifP$lig] <- paste0(ResDescription[[ncol(ResDescription)]][TabModifP$lig], TabModifP$symbole)

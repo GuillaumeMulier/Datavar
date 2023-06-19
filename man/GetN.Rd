@@ -4,7 +4,7 @@
 \alias{GetN}
 \title{Get N}
 \usage{
-GetN(x, Prec, na.rm = TRUE)
+GetN(x, w, Prec, na.rm = TRUE)
 }
 \description{
 Get N

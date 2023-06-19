@@ -1,6 +1,6 @@
 
 .onAttach <- function(libname, pkgname) {
-  sysfonts::font_add(family = "Lato", regular = "data/fonts/Lato-Black.ttf", bold = "data/fonts/Lato-Bold.ttf", italic = "data/fonts/Lato-Italic.ttf", bolditalic = "data/fonts/Lato-BlackItalic.ttf")
+  # sysfonts::font_add(family = "Lato", regular = system.file("Lato-Black.ttf", package = "Datavar"), bold = system.file("Lato-Bold.ttf", package = "Datavar"), italic = system.file("Lato-Italic.ttf", package = "Datavar"), bolditalic = system.file("Lato-BlackItalic.ttf", package = "Datavar"))
   if (!"Lato" %in% sysfonts::font_families())
     packageStartupMessage("You might want to download the google font \"Lato\" with function \"register_gfont\" for flextable outputs.")
   Chemin <- tempdir()

@@ -4,7 +4,7 @@
 \alias{IQR}
 \title{Get IQR}
 \usage{
-IQR(x, Prec, na.rm = TRUE)
+IQR(x, w = rep(1, length(x)), Prec)
 }
 \description{
 Get IQR

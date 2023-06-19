@@ -59,6 +59,27 @@ TableDescrAm <- SilentDescription(mtcars, .Datavar = DatavarMtcars, y = am)
 FlexTabDescr(TableDescrAm)
 ```
 
+You can also use weights and explore equilibrium with SMD.
+First, the table without weighting.
+
+```{r}
+DatavarMtcars2 <- DatavarMtcars
+DatavarMtcars2$mode[!is.na(DatavarMtcars2$mode)] <- "moysd" # Presentation of mean and standard deviations
+TableDescrAm <- SilentDescription(mtcars, .Datavar = DatavarMtcars2, y = am, Comparer = FALSE, SMD = TRUE)
+FlexTabDescr(TableDescrAm)
+```
+
+And now the table with weighting :
+
+```{r}
+Mod <- glm(am ~ gear + mpg, data = mtcars, family = binomial(link = "logit")) # Fictive model, just for example
+mtcars$poids <- ifelse(mtcars$am == 1, 1 / predict(Mod, type = "response"), 1 / (1 - predict(Mod, type = "response")))
+TableDescrAm <- SilentDescription(mtcars, .Datavar = DatavarMtcars2, y = am, Comparer = FALSE, SMD = TRUE, Poids = poids)
+FlexTabDescr(TableDescrAm)
+```
+
+
+
 # Explore data with plots
 
 If you want to visualize your data quickly, use **visu_data** application (not show in the vignette): you can copy paste the code for the graph to reproduce it out of the application.

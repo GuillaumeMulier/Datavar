@@ -34,7 +34,7 @@ CreateDatavar <- function(.Data,
                           Options = DefaultOptions()) {
 
   if (!inherits(Options, "default_options_datavar"))
-    stop("Specify default options in \"", PrintArg("Options"), "\" with function \"", cli::style_italic("options_datavar"), "\".")
+    stop("Specify default options in \"", PrintArg("Options"), "\" with function \"", cli::style_italic("DefaultOptions"), "\".")
 
   Datavar <- data.frame(var         = colonnes,
                         type        = NA_character_,

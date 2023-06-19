@@ -5,7 +5,7 @@
 #' A function to describe categorical variables with count and percentage (+ binomial confidence interval if supplied).
 #' The difference with \code{TabBinaire} is that all categories are displayed.
 #'
-#' You can also use it to cross it with a categorial variable and perform a comparison test (chisq test, fisher test).
+#' You can also use it to cross it with a categorical variable and perform a comparison test (chisq test, fisher test).
 #'
 #' @param .Data The dataset that contains the variables.
 #' @param x The categorical variable to describe. Should be the name without "".
@@ -15,7 +15,9 @@
 #' @param NomVariable The Name of the variable you want to display. If not supplied, the name of the variable in data is used.
 #' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
-#' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher").
+#' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
+#' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher", "multinomial").
+#' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param P0 Numeric vector of length the number of categories in x between 0 and 1 giving the probability(ies) under H0. If unspecified equal probability to all groups.
 #' @param ChifPval Number of decimals for the Pvalue if test is performed.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
@@ -24,11 +26,17 @@
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Not usefull, if TRUE will delete unused column 'Pvalue'.
 #'
+#' @details
+#' The standardized mean differences are computed accordingly to Yang and Dalton (2012).
+#'
 #' @export
 #'
 #' @encoding UTF-8
 #'
 #' @seealso [Description()]
+#'
+#' @references
+#' Yang, D., & Dalton, J. E. (2012, April). A unified approach to measuring the effect size between two groups using SAS. In SAS global forum (Vol. 335, pp. 1-6).
 #'
 #' @examples
 #' TabQuali(mtcars, cyl)
@@ -45,7 +53,9 @@ TabQuali <- function(.Data,
                      NomVariable = NULL,
                      ConfInter = c("none", "normal", "exact", "jeffreys"),
                      ConfLevel = .95,
+                     Poids = NULL,
                      Test = "none",
+                     SMD = FALSE,
                      P0 = NULL,
                      ChifPval = 2,
                      NomCol = NULL,
@@ -58,24 +68,27 @@ TabQuali <- function(.Data,
   x <- rlang::enexpr(x)
   VarQuali <- rlang::eval_tidy(x, data = .Data)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
 
   # Verifications
   stopifnot(is.logical(Ordonnee), length(Ordonnee) == 1, is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec, x)
-  ConfInter <- VerifArgs(ConfInter)
-  ConfLevel <- VerifArgs(ConfLevel, x)
   VarQuali <- VerifArgs(VarQuali, Ordonnee)
+  Poids <- VerifArgs(Poids, x, VarQuali, .Data)
+  ConfInter <- VerifArgs(ConfInter, Poids)
+  ConfLevel <- VerifArgs(ConfLevel, x)
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
+  HelperN <- if (all(Poids %in% c(0, 1))) "%i" else "%.2f" # Helper for formatting of N
 
   if (is.null(y)) { # Univariate description
 
     # Store statistics
-    X <- table(VarQuali, useNA = "no")
+    X <- tapply(Poids, VarQuali, sum)
     N <- sum(X)
-    M <- if (is.null(PMissing)) paste0(sum(is.na(VarQuali))) else sprintf(paste0("%i(%.", PMissing, "f%%)"), sum(is.na(VarQuali)), sum(is.na(VarQuali)) / length(VarQuali))
-    Pourcent <- list(fmt = if (ConfInter == "none") paste0("%i/%i (", Prec, "%%)") else paste0("%i/%i (", Prec, "%%[", Prec, ";", Prec, "])"),
+    M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarQuali)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarQuali)) * Poids), sum(as.numeric(is.na(VarQuali)) * Poids) / sum(Poids))
+    Pourcent <- list(fmt = if (ConfInter == "none") paste0(HelperN, "/", HelperN, " (", Prec, "%%)") else paste0(HelperN, "/", HelperN, " (", Prec, "%%[", Prec, ";", Prec, "])"),
                      X,
                      N,
                      100 * X / N)
@@ -83,11 +96,11 @@ TabQuali <- function(.Data,
       Pourcent <- append(Pourcent,
                          list(qnorm((1 - ConfLevel) / 2,
                                     mean = X / N,
-                                    sd = sqrt((X / N) * (1 - X / N) / N))))
+                                    sd = purrr::map_dbl(names(X), ~ sqrt(WeightedVar(VarQuali == .x, Poids, Corr = 0) / N)))))
       Pourcent <- append(Pourcent,
                          list(qnorm((1 + ConfLevel) / 2,
                                     mean = X / N,
-                                    sd = sqrt((X / N) * (1 - X / N) / N))))
+                                    sd = purrr::map_dbl(names(X), ~ sqrt(WeightedVar(VarQuali == .x, Poids, Corr = 0) / N)))))
       Pourcent[[5]] <- 100 * pmax(Pourcent[[5]], 0)
       Pourcent[[6]] <- 100 * pmin(Pourcent[[6]], 1)
     } else if (ConfInter == "exact") {
@@ -102,9 +115,11 @@ TabQuali <- function(.Data,
     Pourcent <- do.call("sprintf", Pourcent)
     if (Test != "none") {
       P0 <- VerifArgs(P0, VarQuali, x)
-      Test <- VerifTest(Test, "quali", 1, VarBinaire, y, x)
-      NomVariable <- paste0(NomVariable, " (n, %) [*&pi;~0~=", paste(round(P0, 2), collapse = "/"), "*]")
-      Pval <- c(MakeTest(VarQuali, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), rep("", nlevels(VarQuali)))
+      Test <- VerifTest(Test, "quali", 1, VarQuali, y, x, Poids)
+      if (Test != "none") {
+        NomVariable <- paste0(NomVariable, " (n, %) [*&pi;~0~=", paste(round(P0, 2), collapse = "/"), "*]")
+        Pval <- c(MakeTest(VarQuali, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), rep("", nlevels(VarQuali)))
+      }
     }
 
     # Table of results
@@ -114,7 +129,7 @@ TabQuali <- function(.Data,
                           stats = c(Pourcent, M),
                           stringsAsFactors = FALSE)
     if (Test != "none") Tableau$pval <- Pval
-    if (Grapher) Tableau$graphes <- c(lapply(levels(VarQuali), \(x) GGBar(as.numeric(VarQuali == x), NULL, Prec)), "")
+    if (Grapher) Tableau$graphes <- c(lapply(levels(VarQuali), \(x) GGBar(as.numeric(VarQuali == x), NULL, Poids, Prec)), "")
     attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
@@ -131,26 +146,34 @@ TabQuali <- function(.Data,
     VarCroise <- rlang::eval_tidy(y, data = .Data)
     VarQuali <- VarQuali[!is.na(VarCroise)]
     VarCroise <- VarCroise[!is.na(VarCroise)]
+    Poids <- Poids[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
 
     # Verifications on statistical test
-    Test <- VerifTest(Test, "quali", NClasses, VarQuali, y, x)
+    Test <- VerifTest(Test, "quali", NClasses, VarQuali, y, x, Poids)
     ChifPval <- VerifArgs(ChifPval)
 
     # Statistics
-    X <- as.data.frame(table(VarQuali, VarCroise, useNA = "no")) # In fact, as VarQuali is transformed as a factor, no need to track for categories as they are ordered with levels
-    N <- tapply(VarQuali, VarCroise, \(x) sum(!is.na(x), na.rm = TRUE))
+    X <- dplyr::count(data.frame(VarQuali, VarCroise, Poids), VarQuali, VarCroise, wt = Poids, name = "Freq") |>
+      tidyr::complete(VarQuali, VarCroise, fill = list(Freq = 0)) |>
+      as.data.frame() |>
+      dplyr::filter(!is.na(VarQuali))
+    N <- tapply(Poids * as.numeric(!is.na(VarQuali)), VarCroise, sum, na.rm = TRUE)
     M <- if (is.null(PMissing)) {
-      tapply(VarQuali, VarCroise, \(x) paste0(sum(is.na(x), na.rm = TRUE)))
+      sprintf(HelperN, tapply(Poids * as.numeric(is.na(VarQuali)), VarCroise, sum, na.rm = TRUE))
     } else {
-      tapply(VarQuali, VarCroise, \(x) sprintf(paste0("%i(%.", PMissing, "f%%)"), sum(is.na(x)), sum(is.na(x)) / length(x)))
+      TempNum <- tapply(as.numeric(is.na(VarQuali)) * Poids, VarCroise, sum, na.rm = TRUE)
+      TempDenom <- tapply(Poids, VarCroise, sum, na.rm = TRUE)
+      sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), TempNum, 100 * TempNum / TempDenom)
     }
     PourcentsCrois <- purrr::pmap_dfc(
       list(.X = split(X, X$VarCroise),
            .N = N,
            .M = M),
       \(.X, .N, .M) {
-        Pourcent <- list(fmt = if (ConfInter == "none") paste0("%i/%i (", Prec, "%%)") else paste0("%i/%i (", Prec, "%%[", Prec, ";", Prec, "])"),
+        VarTempQ <- VarQuali[VarCroise == .X$VarCroise[1]]
+        VarTempP <- Poids[VarCroise == .X$VarCroise[1]]
+        Pourcent <- list(fmt = if (ConfInter == "none") paste0(HelperN, "/", HelperN, " (", Prec, "%%)") else paste0(HelperN, "/", HelperN, " (", Prec, "%%[", Prec, ";", Prec, "])"),
                          .X$Freq,
                          .N,
                          100 * .X$Freq / .N)
@@ -158,11 +181,11 @@ TabQuali <- function(.Data,
           Pourcent <- append(Pourcent,
                              list(qnorm((1 - ConfLevel) / 2,
                                         mean = .X$Freq / .N,
-                                        sd = sqrt((.X$Freq / .N) * (1 - .X$Freq / .N) / .N))))
+                                        sd = purrr::map_dbl(.X$VarQuali, ~ sqrt(WeightedVar(VarTempQ == .x, VarTempP, Corr = 0) / .N)))))
           Pourcent <- append(Pourcent,
                              list(qnorm((1 + ConfLevel) / 2,
                                         mean = .X$Freq / .N,
-                                        sd = sqrt((.X$Freq / .N) * (1 - .X$Freq / .N) / .N))))
+                                        sd = purrr::map_dbl(.X$VarQuali, ~ sqrt(WeightedVar(VarTempQ == .x, VarTempP, Corr = 0) / .N)))))
           Pourcent[[5]] <- 100 * pmax(Pourcent[[5]], 0)
           Pourcent[[6]] <- 100 * pmin(Pourcent[[6]], 1)
         } else if (ConfInter == "exact") {
@@ -180,6 +203,16 @@ TabQuali <- function(.Data,
       }
     )
     if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", nlevels(VarQuali)))
+    if (SMD) {
+      if (NClasses != 2) {
+        stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
+      } else {
+        LabelsCroisement <- names(table(VarCroise))
+        TempSmd <- SmdProp(VarQuali[VarCroise == LabelsCroisement[1]], Poids[VarCroise == LabelsCroisement[1]],
+                           VarQuali[VarCroise == LabelsCroisement[2]], Poids[VarCroise == LabelsCroisement[2]])
+        DMS <- c(FormatPval(TempSmd, ChifPval), rep("", nrow(PourcentsCrois) - 1))
+      }
+    }
 
     # Table of results
     Tableau <- data.frame(var = paste0(NomVariable, " (n, %)"),
@@ -188,6 +221,7 @@ TabQuali <- function(.Data,
                           stringsAsFactors = FALSE)
     Tableau <- cbind(Tableau, as.matrix(PourcentsCrois))
     if (Test != "none") Tableau$pval <- Pval
+    if (SMD) {Tableau$smd <- DMS;attr(Tableau, "standardized_mean_difference") <- TempSmd}
     attr(Tableau, "crossed") <- "multivariate"
     if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
 
@@ -196,11 +230,13 @@ TabQuali <- function(.Data,
       if (Langue == "fr") {
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-                               if (Test == "none") NULL else "PValue")
+                               if (Test == "none") NULL else "PValue",
+                               if (SMD) "SMD" else NULL)
       } else {
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-                               if (Test == "none") NULL else "PValue")
+                               if (Test == "none") NULL else "PValue",
+                               if (SMD) "SMD" else NULL)
       }
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for variable \"", PrintVar(rlang::quo_name(x)), "\"."), call. = FALSE)
@@ -229,7 +265,9 @@ NoMessTabQuali <- function(.Data,
                            NomVariable = NULL,
                            ConfInter = c("none", "normal", "exact", "jeffreys"),
                            ConfLevel = .95,
+                           Poids = NULL,
                            Test = "none",
+                           SMD = FALSE,
                            P0 = NULL,
                            ChifPval = 2,
                            NomCol = NULL,
@@ -240,6 +278,7 @@ NoMessTabQuali <- function(.Data,
 
   x <- rlang::enexpr(x)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(Tableau <- TabQuali(.Data = .Data,
                                        x = !!x,
                                        y = !!y,
@@ -248,7 +287,9 @@ NoMessTabQuali <- function(.Data,
                                        NomVariable = NomVariable,
                                        ConfInter = ConfInter,
                                        ConfLevel = ConfLevel,
+                                       Poids = !!Poids,
                                        Test = Test,
+                                       SMD = SMD,
                                        P0 = P0,
                                        ChifPval = ChifPval,
                                        NomCol = NomCol,
@@ -271,7 +312,9 @@ SilentTabQuali <- function(.Data,
                            NomVariable = NULL,
                            ConfInter = c("none", "normal", "exact", "jeffreys"),
                            ConfLevel = .95,
+                           Poids = NULL,
                            Test = "none",
+                           SMD = FALSE,
                            P0 = NULL,
                            ChifPval = 2,
                            NomCol = NULL,
@@ -282,6 +325,7 @@ SilentTabQuali <- function(.Data,
 
   x <- rlang::enexpr(x)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(suppressWarnings(Tableau <- TabQuali(.Data = .Data,
                                                         x = !!x,
                                                         y = !!y,
@@ -290,7 +334,9 @@ SilentTabQuali <- function(.Data,
                                                         NomVariable = NomVariable,
                                                         ConfInter = ConfInter,
                                                         ConfLevel = ConfLevel,
+                                                        Poids = !!Poids,
                                                         Test = Test,
+                                                        SMD = SMD,
                                                         P0 = P0,
                                                         ChifPval = ChifPval,
                                                         NomCol = NomCol,

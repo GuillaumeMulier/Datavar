@@ -7,40 +7,74 @@ FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<0.", paste(rep("
 
 
 #' Get the 1st quartile
-Q1 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.25, na.rm = na.rm))
+Q1 <- function(x, w = rep(1, length(x))) as.numeric(WeightedQuantile(x, w, q = 0.25))
 
 
 #' Get the 3rd quartile
-Q3 <- function(x, na.rm = TRUE) as.numeric(quantile(x, probs = 0.75, na.rm = na.rm))
+Q3 <- function(x, w = rep(1, length(x))) as.numeric(WeightedQuantile(x, w, q = 0.75))
 
 
 #' Get IQR
-IQR <- function(x, Prec, na.rm = TRUE) sprintf(paste0("(", Prec, "-", Prec, ")"), Q1(x, na.rm), Q3(x, na.rm))
+IQR <- function(x, w = rep(1, length(x)), Prec) sprintf(paste0("(", Prec, "-", Prec, ")"), Q1(x, w), Q3(x, w))
 
 
 #' Get range
-RangeVar <- function(x, Prec, na.rm = TRUE) sprintf(paste0("[", Prec, "-", Prec, "]"),
+RangeVar <- function(x, w, Prec, na.rm = TRUE) sprintf(paste0("[", Prec, "-", Prec, "]"),
                                                     range(x, na.rm = na.rm)[1], range(x, na.rm = na.rm)[2])
 
 
 #' Get mean
-MeanVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, mean(x, na.rm = na.rm))
+MeanVar <- function(x, w, Prec, na.rm = TRUE) sprintf(Prec, WeightedMean(x, w, na.rm = na.rm))
 
 
 #' Get standard deviation
-SdVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, sd(x, na.rm = na.rm))
+SdVar <- function(x, w, Prec, na.rm = TRUE) sprintf(Prec, sqrt(WeightedVar(x, w, na.rm = na.rm, Corr = 1)))
 
 
 #' Get median
-MedianVar <- function(x, Prec, na.rm = TRUE) sprintf(Prec, median(x, na.rm = na.rm))
+MedianVar <- function(x, w, Prec) sprintf(Prec, WeightedQuantile(x, w, q = .5))
 
 
 #' Get N
-GetN <- function(x, Prec, na.rm = TRUE) sprintf(Prec, sum(!is.na(x), na.rm = na.rm))
+GetN <- function(x, w, Prec, na.rm = TRUE) sprintf(Prec, sum(as.numeric(!is.na(x)) * w, na.rm = na.rm))
 
 
 #' Get Missing
-GetM <- function(x, Prec, na.rm = TRUE) if (grepl("\\(", Prec)) sprintf(Prec, sum(is.na(x), na.rm = na.rm), 100 * sum(is.na(x), na.rm = na.rm) / length(x)) else sprintf(Prec, sum(is.na(x), na.rm = na.rm))
+GetM <- function(x, w, Prec, na.rm = TRUE) if (grepl("\\(", Prec)) sprintf(Prec, sum(as.numeric(is.na(x)) * w, na.rm = na.rm), 100 * sum(as.numeric(is.na(x)) * w, na.rm = na.rm) / length(x)) else sprintf(Prec, sum(as.numeric(is.na(x)) * w, na.rm = na.rm))
+
+
+#' Weighted Mean
+WeightedMean <- function(x, w, na.rm = TRUE) sum(x * w, na.rm = na.rm) / sum(w[!is.na(x)])
+
+
+#' Weighted variance
+#' @references https://www.gnu.org/software/gsl/doc/html/statistics.html#weighted-samples
+#' https://www.analyticalgroup.com/download/weighted_mean.pdf
+WeightedVar <- function(x, w, na.rm = TRUE, Corr = 1) {
+  if (na.rm) {w <- w[!is.na(x)];x <- x[!is.na(x)]}
+  M <- WeightedMean(x, w, na.rm = na.rm)
+  Denom <- sum(w, na.rm = na.rm)
+  return(sum(w * (x - M) ** 2, na.rm = na.rm) / (Denom - Corr))
+}
+
+
+#' Weighted quantiles
+#' @references https://en.wikipedia.org/wiki/Weighted_median
+WeightedQuantile <- function(x, w = rep(1, length(x)), q = .5) {
+
+  # Sort values and weights
+  w <- w[!is.na(x)]
+  x <- x[!is.na(x)]
+  OrdreX <- order(x)
+  w <- w[order(x)]
+  x <- x[order(x)]
+  sw <- sum(w)
+  n <- length(x) - 1
+
+  Resultat <- rcpp_QuantileSearch(x, w, q, sw, n)
+  return(Resultat)
+
+}
 
 
 #' Print variable in message

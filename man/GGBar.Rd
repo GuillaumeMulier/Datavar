@@ -4,17 +4,19 @@
 \alias{GGBar}
 \title{Bar chart for categorical variables}
 \usage{
-GGBar(VarBinaire, VarCroise = NULL, Prec)
+GGBar(VarBinaire, VarCroise = NULL, Poids, Prec)
 }
 \arguments{
 \item{VarBinaire}{Variable to plot.}
 
 \item{VarCroise}{Crossing variable.}
 
+\item{Poids}{Vector of weights}
+
 \item{Prec}{Number of digits for percentages (not displayed now by choice).}
 }
 \value{
-SIngle bar plot.
+Single bar plot.
 }
 \description{
 Bar chart for categorical variables

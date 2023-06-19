@@ -4,7 +4,7 @@
 \alias{MeanVar}
 \title{Get mean}
 \usage{
-MeanVar(x, Prec, na.rm = TRUE)
+MeanVar(x, w, Prec, na.rm = TRUE)
 }
 \description{
 Get mean

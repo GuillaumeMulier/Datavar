@@ -6,6 +6,8 @@
 #' @param NomCol Vector of the names of the columns.
 #' @param Langue Language.
 #' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
+#' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
+#' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Boolean. If TRUE (default value) the table will be simplified to remove number of missing data if there aren't any.
 #'
@@ -15,6 +17,8 @@ VarDescr <- function(.Data,
                      y,
                      NomCol,
                      PMissing = NULL,
+                     Poids = NULL,
+                     SMD = FALSE,
                      Simplif = TRUE,
                      Langue,
                      Grapher = FALSE) {
@@ -26,6 +30,7 @@ VarDescr <- function(.Data,
       .Data = .Data, x = !!x, y = !!y,
       Prec = if (!is.na(LigneDatavar[["prec"]])) as.numeric(LigneDatavar[["prec"]]) else 0,
       PMissing = PMissing, NomCol = NomCol, Langue = Langue, Grapher = Grapher, Simplif = Simplif,
+      Poids = !!Poids, SMD = SMD,
       NomVariable = if (!is.na(LigneDatavar[["nomvariable"]])) as.character(LigneDatavar[["nomvariable"]]) else NULL,
       Mode = if (!is.na(LigneDatavar[["mode"]])) as.character(LigneDatavar[["mode"]]) else "mediqrg",
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
@@ -40,6 +45,7 @@ VarDescr <- function(.Data,
       NomCateg = if (!is.na(LigneDatavar[["nomcateg"]])) as.character(LigneDatavar[["nomcateg"]]) else NULL,
       NomLabel = if (!is.na(LigneDatavar[["label"]])) as.character(LigneDatavar[["label"]]) else NULL,
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
+      Poids = !!Poids, SMD = SMD,
       P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
@@ -53,6 +59,7 @@ VarDescr <- function(.Data,
       NomVariable = if (!is.na(LigneDatavar[["nomvariable"]])) as.character(LigneDatavar[["nomvariable"]]) else NULL,
       Ordonnee = if (!is.na(LigneDatavar[["ordonnee"]])) as.logical(LigneDatavar[["ordonnee"]]) else TRUE,
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
+      Poids = !!Poids, SMD = SMD,
       P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
@@ -80,6 +87,8 @@ VarDescr <- function(.Data,
 #' @param .Datavar The datavar.
 #' @param .Listevar A vector of the name of the columns you want to describe. By default, it is the whole set of variables present in the datavar.
 #' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
+#' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
+#' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param NomCol The vector of the names you want to give to the columns of the output. NULL for automatic naming.
 #' @param Langue "fr" for French and "eng" for English.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
@@ -105,6 +114,8 @@ Description <- function(.Data,
                         .Datavar,
                         .Listevar = .Datavar[[1]],
                         PMissing = NULL,
+                        Poids = NULL,
+                        SMD = FALSE,
                         NomCol = NULL,
                         Langue = "eng",
                         Grapher = FALSE,
@@ -112,10 +123,12 @@ Description <- function(.Data,
                         Comparer = FALSE) {
 
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   if (!is.null(y)) .Listevar <- .Listevar[.Listevar != rlang::quo_name(y)]
   StockMeta <- rlang::new_environment(parent = rlang::current_env())
   StockMeta$tests <- if (Comparer) data.frame(var = character(0), test = character(0), type = character(0)) else NULL
   StockMeta$labels <- data.frame(var = character(0), label = character(0), type = character(0))
+  StockMeta$smds <- if (SMD & !is.null(y)) data.frame(var = character(0), label = character(0), type = character(0), smd = numeric(0)) else NULL
 
   # Verifications
   stopifnot(is.logical(Comparer), length(Comparer) == 1, is.logical(Grapher), length(Grapher) == 1)
@@ -134,16 +147,20 @@ Description <- function(.Data,
                       NomCol = NomCol,
                       Langue = Langue,
                       PMissing = PMissing,
+                      Poids = Poids,
+                      SMD = SMD,
                       Grapher = Grapher,
                       Simplif = Simplif)
       if (Comparer) StockMeta$tests <- rbind(StockMeta$tests, data.frame(var = Tab[1, 1], test = Ligne[["test"]], type = Ligne[["type"]]))
       StockMeta$labels <- rbind(StockMeta$labels, data.frame(var = var, label = Tab[1, 1], type = Ligne[["type"]]))
+      if (SMD & !is.null(y)) StockMeta$smds <- rbind(StockMeta$smds, data.frame(var = var, label = Tab[1, 1], type = Ligne[["type"]], smd = attr(Tab, "standardized_mean_difference")))
       return(Tab)
     }
   )
 
   # Track labels of variables
   attr(Tableau, "tab_lab") <-  StockMeta$labels
+  if (SMD & !is.null(y)) attr(Tableau, "smds") <- StockMeta$smds
 
   # Retrieve metadata to present results
   # Add them as attributes to store them and use them with flextable to create footnotes automatically on which tests are made
@@ -211,7 +228,9 @@ Description <- function(.Data,
 
   class(Tableau) <- c("tab_description", "data.frame")
   attr(Tableau, "Grapher") <- Grapher & is.null(y)
-  attr(Tableau, "Comparer") <- Comparer & any(.Datavar$test[.Datavar$var %in% .Listevar] != "none")
+  attr(Tableau, "difference_moy_stand") <- SMD & !is.null(y)
+  attr(Tableau, "Comparer") <- Comparer & any(.Datavar$test[.Datavar$var %in% .Listevar] != "none") & is.null(Poids)
+  attr(Tableau, "standardized_mean_difference") <- NULL # Inherited attribute to remove
   return(Tableau)
 
 }
@@ -219,12 +238,15 @@ Description <- function(.Data,
 
 
 #' @rdname Description
+#' @export
 #' @importFrom rlang !!
 NoMessDescription <- function(.Data,
                               y = NULL,
                               .Datavar,
                               .Listevar = .Datavar[[1]],
                               PMissing = NULL,
+                              Poids = NULL,
+                              SMD = FALSE,
                               NomCol = NULL,
                               Langue = "eng",
                               Grapher = FALSE,
@@ -232,11 +254,14 @@ NoMessDescription <- function(.Data,
                               Comparer = TRUE) {
 
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(Tableau <- Description(.Data = .Data,
                                           y = !!y,
                                           .Datavar = .Datavar,
                                           .Listevar = .Listevar,
                                           PMissing = PMissing,
+                                          Poids = !!Poids,
+                                          SMD = SMD,
                                           NomCol = NomCol,
                                           Langue = Langue,
                                           Grapher = Grapher,
@@ -248,12 +273,15 @@ NoMessDescription <- function(.Data,
 
 
 #' @rdname Description
+#' @export
 #' @importFrom rlang !!
 SilentDescription <- function(.Data,
                               y = NULL,
                               .Datavar,
                               .Listevar = .Datavar[[1]],
                               PMissing = NULL,
+                              Poids = NULL,
+                              SMD = FALSE,
                               NomCol = NULL,
                               Langue = "eng",
                               Grapher = FALSE,
@@ -261,11 +289,14 @@ SilentDescription <- function(.Data,
                               Comparer = FALSE) {
 
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(suppressWarnings(Tableau <- Description(.Data = .Data,
                                                            y = !!y,
                                                            .Datavar = .Datavar,
                                                            .Listevar = .Listevar,
                                                            PMissing = PMissing,
+                                                           Poids = !!Poids,
+                                                           SMD = SMD,
                                                            NomCol = NomCol,
                                                            Langue = Langue,
                                                            Grapher = Grapher,

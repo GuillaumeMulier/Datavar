@@ -12,11 +12,13 @@ Description(
   .Datavar,
   .Listevar = .Datavar[[1]],
   PMissing = NULL,
+  Poids = NULL,
+  SMD = FALSE,
   NomCol = NULL,
   Langue = "eng",
   Grapher = FALSE,
   Simplif = TRUE,
-  Comparer = TRUE
+  Comparer = FALSE
 )
 
 NoMessDescription(
@@ -25,6 +27,8 @@ NoMessDescription(
   .Datavar,
   .Listevar = .Datavar[[1]],
   PMissing = NULL,
+  Poids = NULL,
+  SMD = FALSE,
   NomCol = NULL,
   Langue = "eng",
   Grapher = FALSE,
@@ -38,11 +42,13 @@ SilentDescription(
   .Datavar,
   .Listevar = .Datavar[[1]],
   PMissing = NULL,
+  Poids = NULL,
+  SMD = FALSE,
   NomCol = NULL,
   Langue = "eng",
   Grapher = FALSE,
   Simplif = TRUE,
-  Comparer = TRUE
+  Comparer = FALSE
 )
 }
 \arguments{
@@ -55,6 +61,10 @@ SilentDescription(
 \item{.Listevar}{A vector of the name of the columns you want to describe. By default, it is the whole set of variables present in the datavar.}
 
 \item{PMissing}{Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.}
+
+\item{Poids}{Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.}
+
+\item{SMD}{Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.}
 
 \item{NomCol}{The vector of the names you want to give to the columns of the output. NULL for automatic naming.}
 

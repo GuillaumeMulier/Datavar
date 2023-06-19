@@ -4,12 +4,14 @@
 \alias{GGHist}
 \title{Histogramm for continuous variables}
 \usage{
-GGHist(VarQuanti, Bins = 10)
+GGHist(VarQuanti, Poids, Bins = 10)
 }
 \arguments{
 \item{VarQuanti}{Continuous variables.}
 
-\item{Bins}{Number of bins}
+\item{Poids}{Vector of weights.}
+
+\item{Bins}{Number of bins.}
 }
 \value{
 Histogramm plot.

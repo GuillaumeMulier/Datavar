@@ -4,7 +4,7 @@
 \alias{RangeVar}
 \title{Get range}
 \usage{
-RangeVar(x, Prec, na.rm = TRUE)
+RangeVar(x, w, Prec, na.rm = TRUE)
 }
 \description{
 Get range

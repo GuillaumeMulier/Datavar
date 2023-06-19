@@ -14,7 +14,9 @@
 #' @param NomVariable String giving the name you want to display in the table. Automatic display if unspecified.
 #' @param Mode String to indicate what statistics to display. If unspecified, by default give median, interquartile and range ("med" for
 #' median, "moy" for mean, "sd" for standard deviation, "iq" for interquartile and "rg" fo range).
-#' @param Test String giving the test to compare the statistic between the 2 groups if needed ("none", "ztest", "student", "wilcoxon").
+#' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
+#' @param Test String giving the test to compare the statistic between the 2 groups if needed ("none", "ztest", "student", "studentvar" for Welch correction, "wilcoxon", "anova", "kruskal-wallis").
+#' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param ChifPval Number of decimals for the Pvalue if needed.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
@@ -39,7 +41,9 @@ TabQuanti <- function(.Data,
                       PMissing = NULL,
                       NomVariable = NULL,
                       Mode = "mediqrg",
+                      Poids = NULL,
                       Test = "none",
+                      SMD = FALSE,
                       Mu0 = 0,
                       ChifPval = 2,
                       NomCol = NULL,
@@ -51,6 +55,7 @@ TabQuanti <- function(.Data,
   x <- rlang::enexpr(x)
   VarQuanti <- rlang::eval_tidy(x, data = .Data)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
 
   # Verifications
   stopifnot(is.logical(Grapher), length(Grapher) == 1)
@@ -58,8 +63,10 @@ TabQuanti <- function(.Data,
   Prec <- VerifArgs(Prec, x)
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
-  Mode <- VerifArgs(Mode, x, Langue, Prec, PMissing)
   VarQuanti <- VerifArgs(VarQuanti, x)
+  Poids <- VerifArgs(Poids, x, VarQuanti, .Data)
+  HelperN <- if (all(Poids %in% c(0, 1))) "%i" else "%.2f" # Helper for formatting of N
+  Mode <- VerifArgs(Mode, x, Langue, Prec, PMissing, HelperN)
 
   if (is.null(y)) { # Univariate description
 
@@ -67,16 +74,18 @@ TabQuanti <- function(.Data,
     Statistics <- purrr::map_chr(
       Mode,
       function(tab) {
-        Res <- purrr::map_chr(seq_len(nrow(tab)), ~ tab$fct[[.x]](VarQuanti, tab$precision[.x]))
+        Res <- purrr::map_chr(seq_len(nrow(tab)), ~ tab$fct[[.x]](VarQuanti, Poids, tab$precision[.x]))
         return(paste(Res, collapse = ", "))
       }
     )
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
     if (Test != "none") {
       Mu0 <- VerifArgs(Mu0, VarQuanti, x)
-      Test <- VerifTest(Test, "quanti", 1, VarQuanti, y, x)
-      NomVariable <- paste0(NomVariable, sprintf(paste0(" [*&mu;~0~=", Prec, "*]"), Mu0))
-      Pval <- MakeTest(VarQuanti, NULL, Test, rlang::quo_name(x), NULL, ChifPval, Mu = Mu0)
+      Test <- VerifTest(Test, "quanti", 1, VarQuanti, y, x, Poids)
+      if (Test != "none") {
+        NomVariable <- paste0(NomVariable, sprintf(paste0(" [*&mu;~0~=", Prec, "*]"), Mu0))
+        Pval <- MakeTest(VarQuanti, NULL, Test, rlang::quo_name(x), NULL, ChifPval, Mu = Mu0)
+      }
     }
 
     # Table of results
@@ -85,7 +94,7 @@ TabQuanti <- function(.Data,
                           stats = Statistics,
                           stringsAsFactors = FALSE)
     if (Test != "none") Tableau$pval <- c("", Pval, rep("", nrow(Tableau) - 2))
-    if (Grapher) Tableau$graphes <- c(list(GGHist(VarQuanti)), rep("", nrow(Tableau) - 1))
+    if (Grapher) Tableau$graphes <- c(list(GGHist(VarQuanti, Poids)), rep("", nrow(Tableau) - 1))
     attr(Tableau, "crossed") <- "univariate"
 
     # Name of columns
@@ -100,7 +109,7 @@ TabQuanti <- function(.Data,
     # Simplify table if no missing values
     if (Simplif && sum(is.na(VarQuanti)) == 0) {
       Tableau[1, 2] <- "N"
-      Tableau[1, 3] <- gsub("^(\\d+), .*$", "\\1", Tableau[1, 3])
+      Tableau[1, 3] <- gsub("^(.+), .*$", "\\1", Tableau[1, 3])
     }
 
   } else { # Multivariate description
@@ -108,25 +117,36 @@ TabQuanti <- function(.Data,
     VarCroise <- rlang::eval_tidy(y, data = .Data)
     VarQuanti <- VarQuanti[!is.na(VarCroise)]
     VarCroise <- VarCroise[!is.na(VarCroise)]
+    Poids <- Poids[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
 
     # Verifications on statistical test
-    Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x)
+    Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x, Poids)
     ChifPval <- VerifArgs(ChifPval)
 
     # Store statistics and labels
-    Statistics <- tapply(VarQuanti, VarCroise,
-                         \(VarQuanti) {
+    Statistics <- tapply(seq_along(VarQuanti), VarCroise,
+                         \(index) {
                            purrr::map_chr(
                              Mode,
                              function(tab) {
-                               Res <- purrr::map_chr(seq_len(nrow(tab)), ~ tab$fct[[.x]](VarQuanti, tab$precision[.x]))
+                               Res <- purrr::map_chr(seq_len(nrow(tab)), ~ tab$fct[[.x]](VarQuanti[index], Poids[index], tab$precision[.x]))
                                return(paste(Res, collapse = ", "))
                              }
                            )
                          })
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
     if (Test != "none") Pval <- c(MakeTest(VarQuanti, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", length(Labelliseurs) - 1))
+    if (SMD) {
+      if (NClasses != 2) {
+        stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
+      } else {
+        LabelsCroisement <- names(table(VarCroise))
+        TempSmd <- SmdMoy(VarQuanti[VarCroise == LabelsCroisement[1]], Poids[VarCroise == LabelsCroisement[1]],
+                          VarQuanti[VarCroise == LabelsCroisement[2]], Poids[VarCroise == LabelsCroisement[2]])
+        DMS <- c("", FormatPval(TempSmd, ChifPval), rep("", length(Statistics[[1]]) - 2))
+      }
+    }
 
     # Table of results
     Tableau <- data.frame(var = NomVariable,
@@ -135,6 +155,7 @@ TabQuanti <- function(.Data,
     Tableau <- suppressMessages(cbind(Tableau, dplyr::bind_cols(Statistics)))
     if (Test != "none") Tableau$pval <- Pval
     if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
+    if (SMD) {Tableau$smd <- DMS;attr(Tableau, "standardized_mean_difference") <- TempSmd}
     attr(Tableau, "crossed") <- "multivariate"
 
     # Names of columns
@@ -142,11 +163,13 @@ TabQuanti <- function(.Data,
       if (Langue == "fr") {
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-                               if (Test == "none") NULL else "PValue")
+                               if (Test == "none") NULL else "PValue",
+                               if (SMD) "SMD" else NULL)
       } else {
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
-                               if (Test == "none") NULL else "PValue")
+                               if (Test == "none") NULL else "PValue",
+                               if (SMD) "SMD" else NULL)
       }
     } else {
       if (length(NomCol) != ncol(Tableau)) stop(paste0("\"", PrintArg("NomCol"), "\" argument isn't of length", ncol(Tableau), " for variable \"", PrintVar(rlang::quo_name(x)), "\"."), call. = FALSE)
@@ -156,7 +179,7 @@ TabQuanti <- function(.Data,
     # Simplify table if no missing values
     if (Simplif && sum(is.na(VarQuanti)) == 0) {
       Tableau[1, 2] <- "N"
-      Tableau[1, 3:4] <- gsub("^(\\d+), .*$", "\\1", Tableau[1, 3:4])
+      Tableau[1, 3:4] <- gsub("^(.+), .*$", "\\1", Tableau[1, 3:4])
     }
 
   }
@@ -177,7 +200,9 @@ NoMessTabQuanti <- function(.Data,
                             PMissing = NULL,
                             NomVariable = NULL,
                             Mode = "mediqrg",
+                            Poids = NULL,
                             Test = "none",
+                            SMD = FALSE,
                             Mu0 = 0,
                             ChifPval = 2,
                             NomCol = NULL,
@@ -187,6 +212,7 @@ NoMessTabQuanti <- function(.Data,
 
   x <- rlang::enexpr(x)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(Tableau <- TabQuanti(.Data = .Data,
                                         x = !!x,
                                         y = !!y,
@@ -194,7 +220,9 @@ NoMessTabQuanti <- function(.Data,
                                         PMissing = PMissing,
                                         NomVariable = NomVariable,
                                         Mode = Mode,
+                                        Poids = !!Poids,
                                         Test = Test,
+                                        SMD = SMD,
                                         Mu0 = Mu0,
                                         ChifPval = ChifPval,
                                         NomCol = NomCol,
@@ -215,7 +243,9 @@ SilentTabQuanti <- function(.Data,
                             PMissing = NULL,
                             NomVariable = NULL,
                             Mode = "mediqrg",
+                            Poids = NULL,
                             Test = "none",
+                            SMD = FALSE,
                             Mu0 = 0,
                             ChifPval = 2,
                             NomCol = NULL,
@@ -225,6 +255,7 @@ SilentTabQuanti <- function(.Data,
 
   x <- rlang::enexpr(x)
   y <- rlang::enexpr(y)
+  Poids <- rlang::enexpr(Poids)
   suppressMessages(suppressWarnings(Tableau <- TabQuanti(.Data = .Data,
                                                          x = !!x,
                                                          y = !!y,
@@ -232,7 +263,9 @@ SilentTabQuanti <- function(.Data,
                                                          PMissing = PMissing,
                                                          NomVariable = NomVariable,
                                                          Mode = Mode,
+                                                         Poids = !!Poids,
                                                          Test = Test,
+                                                         SMD = SMD,
                                                          Mu0 = Mu0,
                                                          ChifPval = ChifPval,
                                                          NomCol = NomCol,

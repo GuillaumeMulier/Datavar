@@ -4,7 +4,7 @@
 \alias{SdVar}
 \title{Get standard deviation}
 \usage{
-SdVar(x, Prec, na.rm = TRUE)
+SdVar(x, w, Prec, na.rm = TRUE)
 }
 \description{
 Get standard deviation

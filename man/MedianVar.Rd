@@ -4,7 +4,7 @@
 \alias{MedianVar}
 \title{Get median}
 \usage{
-MedianVar(x, Prec, na.rm = TRUE)
+MedianVar(x, w, Prec)
 }
 \description{
 Get median

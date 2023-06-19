@@ -14,7 +14,9 @@ TabQuanti(
   PMissing = NULL,
   NomVariable = NULL,
   Mode = "mediqrg",
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   Mu0 = 0,
   ChifPval = 2,
   NomCol = NULL,
@@ -31,7 +33,9 @@ NoMessTabQuanti(
   PMissing = NULL,
   NomVariable = NULL,
   Mode = "mediqrg",
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   Mu0 = 0,
   ChifPval = 2,
   NomCol = NULL,
@@ -48,7 +52,9 @@ SilentTabQuanti(
   PMissing = NULL,
   NomVariable = NULL,
   Mode = "mediqrg",
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   Mu0 = 0,
   ChifPval = 2,
   NomCol = NULL,
@@ -73,7 +79,11 @@ SilentTabQuanti(
 \item{Mode}{String to indicate what statistics to display. If unspecified, by default give median, interquartile and range ("med" for
 median, "moy" for mean, "sd" for standard deviation, "iq" for interquartile and "rg" fo range).}
 
-\item{Test}{String giving the test to compare the statistic between the 2 groups if needed ("none", "ztest", "student", "wilcoxon").}
+\item{Poids}{Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.}
+
+\item{Test}{String giving the test to compare the statistic between the 2 groups if needed ("none", "ztest", "student", "studentvar" for Welch correction, "wilcoxon", "anova", "kruskal-wallis").}
+
+\item{SMD}{Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.}
 
 \item{ChifPval}{Number of decimals for the Pvalue if needed.}
 

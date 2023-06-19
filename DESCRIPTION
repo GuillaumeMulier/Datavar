@@ -27,7 +27,8 @@ Imports:
     rlang (>= 0.4.11),
     sysfonts (>= 0.8.8),
     tidyr (>= 1.2.1),
-    car
+    car,
+    Rcpp
 Suggests: 
     waldo (>= 0.2.5),
     testthat (>= 3.0.0),
@@ -35,3 +36,5 @@ Suggests:
     rmarkdown
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+LinkingTo: 
+    Rcpp

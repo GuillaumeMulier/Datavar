@@ -16,7 +16,9 @@ TabBinaire(
   NomLabel = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -35,7 +37,9 @@ NoMessTabBinaire(
   NomLabel = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -54,7 +58,9 @@ SilentTabBinaire(
   NomLabel = NULL,
   ConfInter = c("none", "normal", "exact", "jeffreys"),
   ConfLevel = 0.95,
+  Poids = NULL,
   Test = "none",
+  SMD = FALSE,
   P0 = NULL,
   ChifPval = 2,
   NomCol = NULL,
@@ -82,7 +88,11 @@ SilentTabBinaire(
 
 \item{ConfLevel}{Level of confidence for confidence intervals (by default 95\%).}
 
-\item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher").}
+\item{Poids}{Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.}
+
+\item{Test}{String giving the name of the comparison test performed ("none", "chisq", "fisher", ""binomial").}
+
+\item{SMD}{Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.}
 
 \item{P0}{Either length 1 or length 2 numeric vector between 0 and 1 giving the probability(ies) under H0.
 When 1 proportion is supplied, it is assigned to value NomCateg. If unspecified equal probability to all groups.}
