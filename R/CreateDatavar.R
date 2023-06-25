@@ -55,12 +55,12 @@ CreateDatavar <- function(.Data,
   Datavar$conf_level <- ifelse(Datavar$type == "quanti", NA_real_, Options$ConfLevel)
   Datavar$prec <- ifelse(Datavar$type == "quanti",
                          ifelse(rep(is.null(Options$Prec), length(colonnes)),
-                                purrr::map_int(Datavar$var, ~ ifelse(grepl(pattern = "\\.", x = as.character(.Data[[.x]])),
+                                purrr::map_dbl(Datavar$var, ~ ifelse(grepl(pattern = "\\.", x = as.character(.Data[[.x]])),
                                                                      nchar(gsub("^\\d*\\.(\\d*)$", "\\1", as.character(.Data[[.x]]))),
                                                                      0) |> max()),
                                 Options$Prec),
-                         ifelse(purrr::map_dbl(Datavar$var, ~ sum(!is.na(.Data[[.x]]))) < 1000, 0L,
-                                ifelse(purrr::map_dbl(Datavar$var, ~ sum(!is.na(.Data[[.x]]))) < 10000, 1L, 2L)))
+                         ifelse(purrr::map_dbl(Datavar$var, ~ sum(!is.na(.Data[[.x]]))) < 1000, 0,
+                                ifelse(purrr::map_dbl(Datavar$var, ~ sum(!is.na(.Data[[.x]]))) < 10000, 1, 2)))
   Datavar$ordonnee <- ifelse(Datavar$type == "quali", Options$Ordonnee, NA)
   Datavar$mode <- ifelse(Datavar$type == "quanti", Options$Mode, NA_character_)
   Datavar$test <- ifelse(Datavar$type == "quanti", Options$Test["quanti"],
