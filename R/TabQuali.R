@@ -74,7 +74,7 @@ TabQuali <- function(.Data,
   stopifnot(is.logical(Ordonnee), length(Ordonnee) == 1, is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec, x)
-  VarQuali <- VerifArgs(VarQuali, Ordonnee)
+  VarQuali <- VerifArgs(VarQuali, Ordonnee, x)
   Poids <- VerifArgs(Poids, x, VarQuali, .Data)
   ConfInter <- VerifArgs(ConfInter, Poids)
   ConfLevel <- VerifArgs(ConfLevel, x)
@@ -85,7 +85,8 @@ TabQuali <- function(.Data,
   if (is.null(y)) { # Univariate description
 
     # Store statistics
-    X <- tapply(Poids, VarQuali, sum)
+    X <- tapply(Poids, VarQuali, sum, na.rm = TRUE)
+    X[is.na(X)] <- 0
     N <- sum(X)
     M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarQuali)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarQuali)) * Poids), sum(as.numeric(is.na(VarQuali)) * Poids) / sum(Poids))
     Pourcent <- list(fmt = if (ConfInter == "none") paste0(HelperN, "/", HelperN, " (", Prec, "%%)") else paste0(HelperN, "/", HelperN, " (", Prec, "%%[", Prec, ";", Prec, "])"),
@@ -120,6 +121,8 @@ TabQuali <- function(.Data,
         NomVariable <- paste0(NomVariable, " (n, %) [*&pi;~0~=", paste(round(P0, 2), collapse = "/"), "*]")
         Pval <- c(MakeTest(VarQuali, NULL, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Mu = P0), rep("", nlevels(VarQuali)))
       }
+    } else {
+      NomVariable <- paste0(NomVariable, " (n, %)")
     }
 
     # Table of results
@@ -145,8 +148,8 @@ TabQuali <- function(.Data,
 
     VarCroise <- rlang::eval_tidy(y, data = .Data)
     VarQuali <- VarQuali[!is.na(VarCroise)]
-    VarCroise <- VarCroise[!is.na(VarCroise)]
     Poids <- Poids[!is.na(VarCroise)]
+    VarCroise <- VarCroise[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
 
     # Verifications on statistical test

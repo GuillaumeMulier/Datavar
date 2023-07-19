@@ -85,7 +85,7 @@ VerifArgs <- function(...) {
                     VarBinaire <- as.character(VarBinaire)
                   return(as.numeric(VarBinaire == NomCateg))
                 },
-                VarQuali = function(VarQuali, Ordonnee) {
+                VarQuali = function(VarQuali, Ordonnee, x) {
                   if (sum(!is.na(VarQuali)) == 0)
                     stop(paste0("Variable \"", PrintVar(rlang::quo_name(x)), "\" has 0 non missing values."), call. = FALSE)
                   if (length(unique(VarQuali[!is.na(VarQuali)])) == 1)

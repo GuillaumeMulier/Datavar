@@ -62,16 +62,21 @@ WeightedVar <- function(x, w, na.rm = TRUE, Corr = 1) {
 #' @references https://en.wikipedia.org/wiki/Weighted_median
 WeightedQuantile <- function(x, w = rep(1, length(x)), q = .5) {
 
-  # Sort values and weights
-  w <- w[!is.na(x)]
-  x <- x[!is.na(x)]
-  OrdreX <- order(x)
-  w <- w[order(x)]
-  x <- x[order(x)]
-  sw <- sum(w)
-  n <- length(x) - 1
+  if (any(w != 1)) {
+    # Sort values and weights
+    w <- w[!is.na(x)]
+    x <- x[!is.na(x)]
+    OrdreX <- order(x)
+    w <- w[order(x)]
+    x <- x[order(x)]
+    sw <- sum(w)
+    n <- length(x) - 1
 
-  Resultat <- rcpp_QuantileSearch(x, w, q, sw, n)
+    Resultat <- rcpp_QuantileSearch(x, w, q, sw, n)
+  } else {
+    Resultat <- quantile(x, probs = q, na.rm = TRUE)
+  }
+
   return(Resultat)
 
 }

@@ -178,8 +178,8 @@ FlexTabDescr <- function(TabDescription, Widths = NULL, BaseSize = 10) {
     FlexDescription <- flextable::add_footer_lines(FlexDescription, values = attr(TabDescription, "footnote"))
     FlexDescription <- ThemeDescription(FlexDescription,
                                         BaseSize = BaseSize,
-                                        Separations = if (attr(TabDescription, "Comparer")) c(2, 3) else 2,
-                                        ColNum = if (attr(TabDescription, "Comparer")) c(2, 3) else 2)
+                                        Separations = seq(2, flextable::ncol_keys(FlexDescription) - 1),
+                                        ColNum = seq(2, flextable::ncol_keys(FlexDescription)))
   } else {
     if (attr(TabDescription, "Comparer") && attr(TabDescription, "tests_atypiques")) {
       TabModifP <- attr(TabDescription, "modif_p")

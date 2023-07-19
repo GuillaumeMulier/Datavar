@@ -266,7 +266,7 @@ NoMessDescription <- function(.Data,
                                           Langue = Langue,
                                           Grapher = Grapher,
                                           Simplif = Simplif,
-                                          Comparer = FALSE))
+                                          Comparer = Comparer))
   return(Tableau)
 
 }
