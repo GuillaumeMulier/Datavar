@@ -67,7 +67,7 @@ TabBinaire <- function(.Data,
   stopifnot(is.logical(Grapher), length(Grapher) == 1)
   Langue <- VerifArgs(Langue)
   Prec <- VerifArgs(Prec, x)
-  NomCateg <- VerifArgs(NomCateg, NomLabel, VarBinaire, x)
+  NomCateg <- VerifArgs(NomCateg, NomLabel, VarBinaire, x, Binaire = TRUE)
   VarBinaire <- VerifArgs(VarBinaire, NomCateg, x)
   NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
   Poids <- VerifArgs(Poids, x, VarBinaire, .Data)

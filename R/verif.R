@@ -39,14 +39,22 @@ VerifArgs <- function(...) {
                     stop("\"", PrintArg("PMissing"), "\" should be a whole positive number or NULL.", call. = FALSE)
                   return(PMissing)
                 },
-                NomCateg = function(NomCateg, NomLabel, VarBinaire, x) {
+                NomCateg = function(NomCateg, NomLabel, VarBinaire, x, Binaire = FALSE) {
                   if (!is.null(NomCateg)) {
                     if (NomCateg == "") {
                       NomCateg <- NULL
                     } else if (NomCateg %nin% names(table(VarBinaire, useNA = "no"))) {
-                      stop(paste0("Class \"", NomCateg, "\" isn't in variable \"", PrintVar(rlang::quo_name(x)),
-                                  "\".\nPossible classes: ", paste(names(table(VarBinaire, useNA = "no")), collapse = " / "), "."),
-                           call. = FALSE)
+                      if (!Binaire) {
+                        stop(paste0("Class \"", NomCateg, "\" isn't in variable \"", PrintVar(rlang::quo_name(x)),
+                                    "\".\nPossible classes: ", paste(names(table(VarBinaire, useNA = "no")), collapse = " / "), "."),
+                             call. = FALSE)
+                      } else {
+                        if (length(names(table(VarBinaire, useNA = "no"))) != 1) {
+                          stop(paste0("Class \"", NomCateg, "\" isn't in variable \"", PrintVar(rlang::quo_name(x)),
+                                      "\".\nPossible classes: ", paste(names(table(VarBinaire, useNA = "no")), collapse = " / "), "."),
+                               call. = FALSE)
+                        }
+                      }
                     }
                   } else {
                     NomCateg <- names(table(VarBinaire, useNA = "no"))[length(names(table(VarBinaire, useNA = "no")))]

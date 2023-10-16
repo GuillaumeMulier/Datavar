@@ -163,10 +163,9 @@ ZTest <- function(VarQuanti, VarY = NULL, Paired = FALSE,
     if (Paired) {
       GardX <- GardY <- complete.cases(VarQuanti, VarY)
     } else {
-      GardX <- !is.na(VarQuanti)
-      GardY <- !is.na(VarY)
+      GardX <- !is.na(VarQuanti) & !is.na(VarY)
     }
-    VarY <- VarY[GardY]
+    VarY <- VarY[GardX]
   } else {
     # Only 1 variable
     dname <- deparse(substitute(VarQuanti))

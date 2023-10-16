@@ -116,8 +116,8 @@ TabQuanti <- function(.Data,
 
     VarCroise <- rlang::eval_tidy(y, data = .Data)
     VarQuanti <- VarQuanti[!is.na(VarCroise)]
-    VarCroise <- VarCroise[!is.na(VarCroise)]
     Poids <- Poids[!is.na(VarCroise)]
+    VarCroise <- VarCroise[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
 
     # Verifications on statistical test
