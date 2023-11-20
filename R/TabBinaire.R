@@ -82,7 +82,7 @@ TabBinaire <- function(.Data,
     # Store statistics
     X <- sum(VarBinaire * Poids, na.rm = TRUE)
     N <- sum(as.numeric(!is.na(VarBinaire)) * Poids)
-    M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarBinaire)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarBinaire)) * Poids), sum(as.numeric(is.na(VarBinaire)) * Poids) / sum(Poids))
+    M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarBinaire)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarBinaire)) * Poids), 100 * sum(as.numeric(is.na(VarBinaire)) * Poids) / sum(Poids))
     Pourcent <- list(fmt = if (ConfInter == "none") paste0(HelperN, "/", HelperN, " (", Prec, "%%)") else paste0(HelperN, "/", HelperN," (", Prec, "%%[", Prec, ";", Prec, "])"),
                      X,
                      N,

@@ -88,7 +88,7 @@ TabQuali <- function(.Data,
     X <- tapply(Poids, VarQuali, sum, na.rm = TRUE)
     X[is.na(X)] <- 0
     N <- sum(X)
-    M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarQuali)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarQuali)) * Poids), sum(as.numeric(is.na(VarQuali)) * Poids) / sum(Poids))
+    M <- if (is.null(PMissing)) sprintf(HelperN, sum(as.numeric(is.na(VarQuali)) * Poids)) else sprintf(paste0(HelperN, "(%.", PMissing, "f%%)"), sum(as.numeric(is.na(VarQuali)) * Poids), 100 * sum(as.numeric(is.na(VarQuali)) * Poids) / sum(Poids))
     Pourcent <- list(fmt = if (ConfInter == "none") paste0(HelperN, "/", HelperN, " (", Prec, "%%)") else paste0(HelperN, "/", HelperN, " (", Prec, "%%[", Prec, ";", Prec, "])"),
                      X,
                      N,
