@@ -28,7 +28,8 @@ Imports:
     sysfonts (>= 0.8.8),
     tidyr (>= 1.2.1),
     car,
-    Rcpp
+    Rcpp,
+    boot
 Suggests: 
     waldo (>= 0.2.5),
     testthat (>= 3.0.0),

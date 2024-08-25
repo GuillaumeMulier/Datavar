@@ -198,6 +198,13 @@ VerifArgs <- function(...) {
                   if (any(.Datavar$type[.Datavar$var %in% ListeVar] %nin% c("quanti", "quali", "binary")))
                     stop("Second column of \"", PrintArg(".Datavar"), "\" should only be comprised of \"quanti\", \"quali\" and \"binary\".")
                   return(.Datavar)
+                },
+                Paired = function(Paired, .Data, NClasses, x) {
+                  if (!is.null(Paired) & NClasses != 2) {
+                    stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
+                  } else {
+
+                  }
                 })
 
   return(Fct(...))

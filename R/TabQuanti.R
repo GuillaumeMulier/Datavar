@@ -49,7 +49,8 @@ TabQuanti <- function(.Data,
                       NomCol = NULL,
                       Langue = "eng",
                       Grapher = FALSE,
-                      Simplif = TRUE) {
+                      Simplif = TRUE,
+                      Paired = NULL) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
   x <- rlang::enexpr(x)
@@ -119,8 +120,10 @@ TabQuanti <- function(.Data,
     Poids <- Poids[!is.na(VarCroise)]
     VarCroise <- VarCroise[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
+    Paired <- VerifArgs(Paired, .Data, NClasses, x)
 
-    # Verifications on statistical test
+    # Verifications on statistical test and paired data
+    if (Paired & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
     Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x, Poids)
     ChifPval <- VerifArgs(ChifPval)
 
@@ -135,6 +138,9 @@ TabQuanti <- function(.Data,
                              }
                            )
                          })
+    if (Paired) {
+
+    }
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
     if (Test != "none") Pval <- c(MakeTest(VarQuanti, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", length(Labelliseurs) - 1))
     if (SMD) {
@@ -154,7 +160,9 @@ TabQuanti <- function(.Data,
                           stringsAsFactors = FALSE)
     Tableau <- suppressMessages(cbind(Tableau, dplyr::bind_cols(Statistics)))
     if (Test != "none") Tableau$pval <- Pval
-    if (Grapher) message(Information("Graphs aren't supported in multivariate description."))
+    if (Grapher & !Paired) {
+      message(Information("Graphs aren't supported in multivariate description for unpaired data."))
+    }
     if (SMD) {Tableau$smd <- DMS;attr(Tableau, "standardized_mean_difference") <- TempSmd}
     attr(Tableau, "crossed") <- "multivariate"
 

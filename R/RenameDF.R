@@ -12,6 +12,7 @@
 #' @export
 #'
 #' @examples
+#' DatavarMtcars$var <- toupper(DatavarMtcars$var)
 #' RenameDF(mtcars, DatavarMtcars)
 RenameDF <- function(.Data, .Datavar) {
 
