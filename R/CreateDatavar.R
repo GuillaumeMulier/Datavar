@@ -9,6 +9,7 @@
 #' @return A data.frame of 12 variables:
 #' \itemize{
 #'   \item var: the name of each variable. All described variables should be in the datavar;
+#'   \item col_name: the original name of the column in the dataframe;
 #'   \item type: type of variable (quanti for a quantitative variable, quali for a categorial variable with more than 2 items and binary for a binary variable);
 #'   \item conf_inter: string for categorical variables indicating which type of confidence interval should be computed for percentage;
 #'   \item conf_level: numeric between 0 and 1 for categorical variables indicating the level for confidence intervals for percentages;
@@ -37,6 +38,7 @@ CreateDatavar <- function(.Data,
     stop("Specify default options in \"", PrintArg("Options"), "\" with function \"", cli::style_italic("DefaultOptions"), "\".")
 
   Datavar <- data.frame(var         = colonnes,
+                        col_name    = colonnes,
                         type        = NA_character_,
                         conf_inter  = NA_character_,
                         conf_level  = NA_real_,
