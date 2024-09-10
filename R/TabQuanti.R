@@ -146,7 +146,7 @@ TabQuanti <- function(.Data,
                            )
                          })
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
-    if (!is.null(Paired)) { # Add the difference of means when paired data and confidence interval is asked
+    if (!is.null(Paired) & ConfInter != "none") { # Add the difference of means when paired data and confidence interval is asked
       ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
       Difference <- ProcessedData[[1]] - ProcessedData[[2]]
       N <- sum(!is.na(Difference))
@@ -172,9 +172,9 @@ TabQuanti <- function(.Data,
         Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
         Statistics[[2]] <- c(Statistics[[2]], "")
       }
-      if (ConfInter != "none" & Langue == "fr") {
+      if (Langue == "fr") {
         Labelliseurs <- c(Labelliseurs, paste0("Différence de moyennes, CI", round(100 * ConfLevel), "%"))
-      } else if (ConfInter != "none" & Langue == "eng") {
+      } else if (Langue == "eng") {
         Labelliseurs <- c(Labelliseurs, paste0("Mean difference, IC", round(100 * ConfLevel), "%"))
       }
     }

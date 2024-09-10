@@ -26,6 +26,7 @@
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Boolean. If TRUE (default value) the table will be simplified to remove number of missing data if there aren't any.
+#' @param Paired NULL if data are not paired/matched, else the name of the pairing variable as character (used only for bivariate analysis).
 #'
 #' @export
 #'
@@ -55,7 +56,8 @@ TabBinaire <- function(.Data,
                        NomCol = NULL,
                        Langue = "eng",
                        Grapher = FALSE,
-                       Simplif = FALSE) {
+                       Simplif = FALSE,
+                       Paired = NULL) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
   x <- rlang::enexpr(x)
@@ -70,8 +72,15 @@ TabBinaire <- function(.Data,
   NomCateg <- VerifArgs(NomCateg, NomLabel, VarBinaire, x, Binaire = TRUE)
   VarBinaire <- VerifArgs(VarBinaire, NomCateg, x)
   NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
-  Poids <- VerifArgs(Poids, x, VarBinaire, .Data)
+  Poids <- VerifArgs(Poids, x, VarBinaire, .Data, Paired)
+  if (grepl("/", ConfInter)) { # ConfInterP for paired difference and ConfInter for proportions in each group
+    ConfInterP <- gsub("^.*/(.*)$", "\\1", ConfInter)
+    ConfInter <- gsub("^(.*)/.*$", "\\1", ConfInter)
+  } else {
+    ConfInterP <- ConfInter
+  }
   ConfInter <- VerifArgs(ConfInter, Poids, "binaire")
+  ConfInterP <- VerifArgs(ConfInterP, Poids, "binaire")
   ConfLevel <- VerifArgs(ConfLevel, x)
   PMissing <- VerifArgs(PMissing)
   ChifPval <- VerifArgs(ChifPval)
@@ -138,9 +147,11 @@ TabBinaire <- function(.Data,
     Poids <- Poids[!is.na(VarCroise)]
     VarCroise <- VarCroise[!is.na(VarCroise)]
     NClasses <- length(unique(VarCroise))
+    Paired <- VerifArgs(Paired, .Data, NClasses, x)
 
     # Verifications on statistical test
-    Test <- VerifTest(Test, "binaire", NClasses, VarBinaire, y, x, Poids)
+    if (!is.null(Paired) & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
+    Test <- VerifTest(Test, "binaire", NClasses, VarBinaire, y, x, Poids, !is.null(Paired))
 
     # Statistics
     X <- tapply(VarBinaire * Poids, VarCroise, sum, na.rm = TRUE)
@@ -175,7 +186,7 @@ TabBinaire <- function(.Data,
         100 * qbeta((1 + ConfLevel) / 2, X + .5, N - X + .5)))
     }
     Pourcent <- do.call("sprintf", Pourcent)
-    if (Test != "none") Pval <- c(MakeTest(VarBinaire, VarCroise, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), "")
+    if (Test != "none") Pval <- c(MakeTest(VarBinaire, VarCroise, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), "")
     if (SMD) {
       if (NClasses != 2) {
         stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
@@ -185,6 +196,24 @@ TabBinaire <- function(.Data,
         TempSmd <- SmdProp(VarTemp[VarCroise == LabelsCroisement[1]], Poids[VarCroise == LabelsCroisement[1]],
                                                                  VarTemp[VarCroise == LabelsCroisement[2]], Poids[VarCroise == LabelsCroisement[2]])
         DMS <- c(FormatPval(TempSmd, ChifPval), "")
+      }
+    }
+
+    # Adding paired proportions difference if needed
+    if (!is.null(Paired) & ConfInterP != "none") {
+      ProcessedData <- ProcessPairedQuanti(VarBinaire, VarCroise, Paired, .Data, NameX)
+      if (ConfInter == "normal") {
+        Difference <- ProcessedData[[1]] - ProcessedData[[2]]
+        N <- sum(!is.na(Difference))
+        MoyD <- mean(Difference, na.rm = TRUE)
+        SdD <- sqrt(var(Difference, na.rm = TRUE))
+        if (N < 30)
+          warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+        IntervalleConfiance <- MoyD + qnorm(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2)) * SdD / sqrt(N)
+        IntervalleConfiance[1] <- max(IntervalleConfiance[1], 0)
+        IntervalleConfiance[2] <- min(IntervalleConfiance[2], 1)
+        Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
+        Statistics[[2]] <- c(Statistics[[2]], "")
       }
     }
 
