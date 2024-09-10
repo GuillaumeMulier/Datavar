@@ -19,9 +19,12 @@
 #' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param ChifPval Number of decimals for the Pvalue if needed.
 #' @param NomCol Vector of strings to name each column of the output. Automatic display if unspecified.
+#' @param ConfInter Type of confidence interval (from student = Student). None if no confidence interval is wanted.
+#' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Langue "fr" for french and "eng" for english. For the display in the table.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Not usefull, if TRUE will delete unused column 'Pvalue'.
+#' @param Paired NULL if data are not paired/matched, else the name of the pairing variable as character (used only for bivariate analysis).
 #'
 #' @export
 #'
@@ -47,6 +50,8 @@ TabQuanti <- function(.Data,
                       Mu0 = 0,
                       ChifPval = 2,
                       NomCol = NULL,
+                      ConfInter = "none",
+                      ConfLevel = .95,
                       Langue = "eng",
                       Grapher = FALSE,
                       Simplif = TRUE,
@@ -65,7 +70,9 @@ TabQuanti <- function(.Data,
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
   VarQuanti <- VerifArgs(VarQuanti, x)
-  Poids <- VerifArgs(Poids, x, VarQuanti, .Data)
+  Poids <- VerifArgs(Poids, x, VarQuanti, .Data, Paired)
+  ConfInter <- VerifArgs(ConfInter, Poids, "quanti")
+  ConfLevel <- VerifArgs(ConfLevel, x)
   HelperN <- if (all(Poids %in% c(0, 1))) "%i" else "%.2f" # Helper for formatting of N
   Mode <- VerifArgs(Mode, x, Langue, Prec, PMissing, HelperN)
 
@@ -123,8 +130,8 @@ TabQuanti <- function(.Data,
     Paired <- VerifArgs(Paired, .Data, NClasses, x)
 
     # Verifications on statistical test and paired data
-    if (Paired & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
-    Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x, Poids)
+    if (!is.null(Paired) & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
+    Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x, Poids, !is.null(Paired))
     ChifPval <- VerifArgs(ChifPval)
 
     # Store statistics and labels
@@ -138,11 +145,27 @@ TabQuanti <- function(.Data,
                              }
                            )
                          })
-    if (Paired) {
-
-    }
     Labelliseurs <- purrr::map_chr(Mode, \(tab) return(paste(tab$label, collapse = ", ")))
-    if (Test != "none") Pval <- c(MakeTest(VarQuanti, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", length(Labelliseurs) - 1))
+    if (!is.null(Paired)) { # Add the difference of means when paired data and confidence interval is asked
+      ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+      Difference <- ProcessedData[[1]] - ProcessedData[[2]]
+      if (ConfInter == "student") {
+        if (ShapiroTest(Difference, NULL, rlang::quo_name(x)) < .05)
+          message(Information(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", the Shapiro-wilk test shows some departure from normal assumption. Consider using another confidence interval.")))
+        N <- sum(!is.na(Difference))
+        MoyD <- mean(Difference, na.rm = TRUE)
+        SdD <- sqrt(var(Difference, na.rm = TRUE))
+        IntervalleConfiance <- MoyD + qt(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2), df = N - 1) * SdD / sqrt(N)
+        Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
+        Statistics[[2]] <- c(Statistics[[2]], "")
+      }
+      if (ConfInter != "none" & Langue == "fr") {
+        Labelliseurs <- c(Labelliseurs, paste0("Différence de moyennes, CI", round(100 * ConfLevel), "%"))
+      } else if (ConfInter != "none" & Langue == "eng") {
+        Labelliseurs <- c(Labelliseurs, paste0("Mean difference, IC", round(100 * ConfLevel), "%"))
+      }
+    }
+    if (Test != "none") Pval <- c(MakeTest(VarQuanti, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), rep("", length(Labelliseurs) - 1))
     if (SMD) {
       if (NClasses != 2) {
         stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
@@ -160,8 +183,10 @@ TabQuanti <- function(.Data,
                           stringsAsFactors = FALSE)
     Tableau <- suppressMessages(cbind(Tableau, dplyr::bind_cols(Statistics)))
     if (Test != "none") Tableau$pval <- Pval
-    if (Grapher & !Paired) {
+    if (Grapher & is.null(Paired)) {
       message(Information("Graphs aren't supported in multivariate description for unpaired data."))
+    } else if (Grapher & !is.null(Paired)) {
+      Tableau$graphes <- c(list(GGHist(Difference, rep(1, length(Difference)))), rep("", nrow(Tableau) - 1))
     }
     if (SMD) {Tableau$smd <- DMS;attr(Tableau, "standardized_mean_difference") <- TempSmd}
     attr(Tableau, "crossed") <- "multivariate"
@@ -172,11 +197,13 @@ TabQuanti <- function(.Data,
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistiques (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
                                if (Test == "none") NULL else "PValue",
+                               if (Grapher & !is.null(Paired)) "Graphes" else NULL,
                                if (SMD) "SMD" else NULL)
       } else {
         colnames(Tableau) <- c("Variable", "Label",
                                paste0(rep("Statistics (", NClasses), rlang::quo_name(y), "=", unique(VarCroise), ")"),
                                if (Test == "none") NULL else "PValue",
+                               if (Grapher & !is.null(Paired)) "Graphs" else NULL,
                                if (SMD) "SMD" else NULL)
       }
     } else {

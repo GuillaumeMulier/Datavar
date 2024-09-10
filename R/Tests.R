@@ -1,4 +1,4 @@
-MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
+MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPairs = NULL) {
 
   if (Test == "chisq") {
     if (any(Y != Y[1])) { # Multivariate
@@ -57,23 +57,32 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0) {
 
   } else if (Test == "student") {
 
-    if (any(Y != Y[1])) { # Multivariate
-      if (ShapiroTest(X, Y, NameX) < .05)
-        message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
-      if (var.test(X ~ Y)$p.value < .05) {
-        Longueurs <- as.numeric(table(Y))
-        if (max(Longueurs[2] / Longueurs[1], Longueurs[1] / Longueurs[2]) > 1.5) {
-          warning(paste0("Non equal variances of \"", PrintVar(NameX), "\" in levels of \"", PrintVar(NameY), "\" with different sizes of samples. Consider Welch correction with \"", PrintArg("Test = studentvar"), "\"."), call. = FALSE, immediate. = TRUE)
-        } else {
-          message(Information(paste0("Non equal variances for variable\"", PrintVar(NameX), "\" in levels of \"", PrintVar(NameY), "\" with about the same number of subjects. T-test is robust in that condition.")))
+    if (!Apparie) { # Non paired test
+      if (any(Y != Y[1])) { # Multivariate
+        if (ShapiroTest(X, Y, NameX) < .05)
+          message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
+        if (var.test(X ~ Y)$p.value < .05) {
+          Longueurs <- as.numeric(table(Y))
+          if (max(Longueurs[2] / Longueurs[1], Longueurs[1] / Longueurs[2]) > 1.5) {
+            warning(paste0("Non equal variances of \"", PrintVar(NameX), "\" in levels of \"", PrintVar(NameY), "\" with different sizes of samples. Consider Welch correction with \"", PrintArg("Test = studentvar"), "\"."), call. = FALSE, immediate. = TRUE)
+          } else {
+            message(Information(paste0("Non equal variances for variable\"", PrintVar(NameX), "\" in levels of \"", PrintVar(NameY), "\" with about the same number of subjects. T-test is robust in that condition.")))
+          }
         }
-      }
-      Pval <- FormatPval(t.test(X ~ Y, var.equal = TRUE)$p.value, S)
+        Pval <- FormatPval(t.test(X ~ Y, var.equal = TRUE)$p.value, S)
 
-    } else { # Univariate
-      if (ShapiroTest(X, NULL, NameX) < .05)
-        message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
-      Pval <- FormatPval(t.test(X, mu = Mu)$p.value, S)
+      } else { # Univariate
+        if (ShapiroTest(X, NULL, NameX) < .05)
+          message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
+        Pval <- FormatPval(t.test(X, mu = Mu)$p.value, S)
+
+      }
+    } else { # Paired test
+      ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+      if (ShapiroTest(ProcessedData[[1]] - ProcessedData[[2]], NULL, NameX) < .05) {
+        message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption for the difference of paired data. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
+      }
+      Pval <- FormatPval(t.test(ProcessedData[[1]], ProcessedData[[2]], paired = TRUE)$p.value, S)
 
     }
 
@@ -257,6 +266,35 @@ ShapiroTest <- function(x, y = NULL, NameX) {
   }
 
   return(PetitP)
+
+}
+
+#' Process quantitative paired data
+#'
+#' @param VarQuanti Quantitative variable of interest
+#' @param VarCroise Grouping variable
+#' @param Paired Name of column that identify pairs
+#' @param .Data The data.frame containing Paired
+#' @param NameX Name of quantitative variable to display
+#'
+#' @return list of 2 variables: the part of VarQuanti in each group with the same place relative to the pairs
+#'
+ProcessPairedQuanti <- function(VarQuanti, VarCroise, Paired, .Data, NameX) {
+
+  # Reconstruct the 2 samples in the right order to perform the test
+  IdPaires <- .Data[[Paired]]
+  GroupesPaires <- tapply(IdPaires, VarCroise, \(x) x)
+  for (n in names(GroupesPaires)) {
+    if (any(table(GroupesPaires[[n]]) > 1)) {
+      message(Attention(paste0("For variable \"", PrintVar(NameX), "\", there are multiple observations of the same cluster in group ", PrintArg(n), ". As pairs will be formed, there will be loses in the sample.")))
+    }
+  }
+  IdCommuns <- intersect(GroupesPaires[[1]], GroupesPaires[[2]])
+  ValeursCroisees <- unique(VarCroise[!is.na(VarCroise)])
+  Var1 <- vapply(IdCommuns, \(x) VarQuanti[IdPaires == x & VarCroise == ValeursCroisees[1]][1], numeric(1)) # Only take the first to avoid multiple correspondances
+  Var2 <- vapply(IdCommuns, \(x) VarQuanti[IdPaires == x & VarCroise == ValeursCroisees[2]][1], numeric(1))
+
+  return(list(Var1, Var2))
 
 }
 

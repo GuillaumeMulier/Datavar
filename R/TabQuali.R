@@ -13,7 +13,7 @@
 #' @param Prec Number of decimals for the percentages.
 #' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
 #' @param NomVariable The Name of the variable you want to display. If not supplied, the name of the variable in data is used.
-#' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
+#' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and jeffreys = Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
 #' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher", "multinomial").

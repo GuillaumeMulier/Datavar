@@ -106,17 +106,22 @@ VerifArgs <- function(...) {
                   }
                   return(VarQuali)
                 },
-                ConfInter = function(ConfInter, Poids) {
-                  ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
-                  if (all(Poids %in% c(0, 1))) {
+                ConfInter = function(ConfInter, Poids, TypeVar) {
+                  if (TypeVar == "quanti") {
+                    ConfInter <- match.arg(ConfInter, c("none", "student"))
                     return(ConfInter)
-                  } else {
-                    if (ConfInter == "none") {
-                      return("none")
+                  } else if (TypeVar == "binary") {
+                    ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
+                    if (all(Poids %in% c(0, 1))) {
+                      return(ConfInter)
                     } else {
-                      if (ConfInter != "normal")
-                        message(Information("With weights, only normal confidence interval is supported."))
-                      return("normal")
+                      if (ConfInter == "none") {
+                        return("none")
+                      } else {
+                        if (ConfInter != "normal")
+                          message(Information("With weights, only normal confidence interval is supported."))
+                        return("normal")
+                      }
                     }
                   }
                 },
@@ -125,7 +130,7 @@ VerifArgs <- function(...) {
                     stop(paste0("\"", PrintArg("ConfLevel"), "\" for variable \"", PrintVar(rlang::quo_name(x)), "\" must be a unique number between 0 and 1."), call. = FALSE)
                   return(ConfLevel)
                 },
-                Poids = function(Poids, x, Variable, .Data) {
+                Poids = function(Poids, x, Variable, .Data, Paired) {
                   if (is.null(Poids)) {
                     return(rep(1, length(Variable)))
                   } else {
@@ -135,6 +140,10 @@ VerifArgs <- function(...) {
                     Poids[is.na(Poids)] <- 0
                     if (!is.numeric(Poids) || length(Poids) != length(Variable) || any(Poids < 0))
                       stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", the argument \"", PrintArg("Poids"), "\" should either be NULL if you don't want to weight or the column of a numeric positive vector of the same length as the variable to describe."), call. = FALSE)
+                    if (Paired) {
+                      message(Attention(paste0("In case of paired data, weights are not supported and are set to 1 (variable \"", PrintVar(rlang::quo_name(x)), "\").")))
+                      Poids <- rep(1, length(Variable))
+                    }
                     return(Poids)
                   }
                 },
@@ -202,9 +211,14 @@ VerifArgs <- function(...) {
                 Paired = function(Paired, .Data, NClasses, x) {
                   if (!is.null(Paired) & NClasses != 2) {
                     stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
-                  } else {
-
+                  } else if (!is.null(Paired)) {
+                    if (length(Paired) != 1 || !is.character(Paired)) {
+                      stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", argument \"", PrintArg("Paired"), "\" is not a character vector of length 1."), call. = FALSE)
+                    } else if (!Paired %in% names(.Data)) {
+                      stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", argument \"", PrintArg("Paired"), "\"(", PrintVar(Paired), ") is not in the column of the dataset."), call. = FALSE)
+                    }
                   }
+                  return(Paired)
                 })
 
   return(Fct(...))
@@ -217,7 +231,7 @@ VerifArgs <- function(...) {
 #' @param x String naming the test.
 #' @param type_var Type of variable.
 #'
-VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids) {
+VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids, Apparie = FALSE) {
 
   Test <- match.arg(Test, c("none", "student", "studentvar", "ztest", "wilcoxon", "kruskal-wallis", "signed-wilcoxon", "anova",
                             "fisher", "chisq", "binomial", "multinomial", "mcnemar"))
@@ -239,15 +253,23 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids) {
       if (Test == "studentvar") Test <- "student"
     }
   } else if (NClasses == 2) {
-    if (TypeVar == "binaire") {
-      if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a binary variable: ", PrintVar(x), ". Choose one of none, ztest, fisher or chisq."), call. = FALSE)
-    } else if (TypeVar == "quali") {
-      if (Test %nin% c("fisher", "chisq", "none"))
-        stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
-    } else if (TypeVar == "quanti") {
-      if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
-        stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, student or studentvar."), call. = FALSE)
+    if (Apparie) { # Paired/matched data
+      if (TypeVar == "quanti") {
+        if (Test %nin% c("none", "student")) {
+          stop(paste0("Test unadapted to a paired quantitative variable: ", PrintVar(x), ". Choose one of none or student."), call. = FALSE)
+        }
+      }
+    } else { # Non paired/matched data
+      if (TypeVar == "binaire") {
+        if (Test %nin% c("ztest", "mcnemar", "fisher", "chisq", "none"))
+          stop(paste0("Test unadapted to a binary variable: ", PrintVar(x), ". Choose one of none, ztest, fisher or chisq."), call. = FALSE)
+      } else if (TypeVar == "quali") {
+        if (Test %nin% c("fisher", "chisq", "none"))
+          stop(paste0("Test unadapted to a categorical variable: ", PrintVar(x), ". Choose one of none, fisher or chisq."), call. = FALSE)
+      } else if (TypeVar == "quanti") {
+        if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
+          stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, student or studentvar."), call. = FALSE)
+      }
     }
   } else if (NClasses > 2) {
     if (TypeVar == "binaire") {

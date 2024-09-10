@@ -14,7 +14,7 @@
 #' @param PMissing Number of decimals of percentage from whole dataset. NULL (default value) if no percent desired.
 #' @param NomCateg The value of the category which you want to display in the table.
 #' @param NomLabel String giving the name of the class that you want to display in the table.
-#' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and Jeffreys). None if no confidence interval is wanted.
+#' @param ConfInter Type of confidence interval (from normal, exact = Clopper-Pearson, and jeffreys = Jeffreys). None if no confidence interval is wanted.
 #' @param ConfLevel Level of confidence for confidence intervals (by default 95%).
 #' @param Poids Name of the column of .Data in which the weights are stored. Let NULL for unweighted analysis.
 #' @param Test String giving the name of the comparison test performed ("none", "chisq", "fisher", ""binomial").
@@ -45,7 +45,7 @@ TabBinaire <- function(.Data,
                        PMissing = NULL,
                        NomCateg = NULL,
                        NomLabel = NULL,
-                       ConfInter = c("none", "normal", "exact", "jeffreys"),
+                       ConfInter = "none",
                        ConfLevel = .95,
                        Poids = NULL,
                        Test = "none",
@@ -71,7 +71,7 @@ TabBinaire <- function(.Data,
   VarBinaire <- VerifArgs(VarBinaire, NomCateg, x)
   NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
   Poids <- VerifArgs(Poids, x, VarBinaire, .Data)
-  ConfInter <- VerifArgs(ConfInter, Poids)
+  ConfInter <- VerifArgs(ConfInter, Poids, "binary")
   ConfLevel <- VerifArgs(ConfLevel, x)
   PMissing <- VerifArgs(PMissing)
   ChifPval <- VerifArgs(ChifPval)
