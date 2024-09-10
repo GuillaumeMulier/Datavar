@@ -108,9 +108,9 @@ VerifArgs <- function(...) {
                 },
                 ConfInter = function(ConfInter, Poids, TypeVar) {
                   if (TypeVar == "quanti") {
-                    ConfInter <- match.arg(ConfInter, c("none", "student"))
+                    ConfInter <- match.arg(ConfInter, c("none", "student", "normal", "bootstrap"))
                     return(ConfInter)
-                  } else if (TypeVar == "binary") {
+                  } else if (TypeVar == "binaire") {
                     ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
                     if (all(Poids %in% c(0, 1))) {
                       return(ConfInter)
@@ -248,15 +248,15 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids, Apparie = 
       if (Test %nin% c("ztest", "multinomial", "chisq", "none"))
         stop(paste0("Test unadapted to a qualitative variable: ", PrintVar(x), ". Choose one of none, ztest, multinomial or chisq."), call. = FALSE)
     } else if (TypeVar == "quanti") {
-      if (Test %nin% c("ztest", "student", "studentvar", "signed-wilcoxon", "none"))
+      if (Test %nin% c("ztest", "student", "studentvar", "wilcoxon", "none"))
         stop(paste0("Test unadapted to a quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, student or studentvar."), call. = FALSE)
       if (Test == "studentvar") Test <- "student"
     }
   } else if (NClasses == 2) {
     if (Apparie) { # Paired/matched data
       if (TypeVar == "quanti") {
-        if (Test %nin% c("none", "student")) {
-          stop(paste0("Test unadapted to a paired quantitative variable: ", PrintVar(x), ". Choose one of none or student."), call. = FALSE)
+        if (Test %nin% c("none", "student", "ztest", "signed-wilcoxon")) {
+          stop(paste0("Test unadapted to a paired quantitative variable: ", PrintVar(x), ". Choose one of none, normal, signed-wilcoxon or student."), call. = FALSE)
         }
       }
     } else { # Non paired/matched data

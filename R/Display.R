@@ -10,11 +10,9 @@
 print.tab_description <- function(x, ...) {
 
   if (attr(x, "Grapher")) {
-    if (attr(x, "crossed") == "univariate") {
-      colonne <- ncol(x)
-      x[[colonne]] <- NULL
-      x2 <- as.data.frame(x)
-    }
+    colonne <- ncol(x)
+    x[[colonne]] <- NULL
+    x2 <- as.data.frame(x)
   } else {
     x2 <- as.data.frame(x)
   }

@@ -45,13 +45,21 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
     Pval <- FormatPval(fisher.test(table(X, Y))$p.value, S)
 
   } else if (Test == "ztest") {
-    if (any(Y != Y[1])) { # Multivariate
-      if (any(as.numeric(table(Y)) < 30))
-        warning(Attention(paste0("At least 1 group with less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
-      suppressWarnings(Pval <- FormatPval(ZTest(X, Y)$p.value, S))
+    if (!Apparie) {
+      if (any(Y != Y[1])) { # Multivariate
+        if (any(as.numeric(table(Y)) < 30))
+          warning(Attention(paste0("At least 1 group with less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+        suppressWarnings(Pval <- FormatPval(ZTest(X, Y)$p.value, S))
 
-    } else { # Univariate
-      suppressWarnings(Pval <- FormatPval(ZTest(X, Mu = Mu)$p.value, S))
+      } else { # Univariate
+        suppressWarnings(Pval <- FormatPval(ZTest(X, Mu = Mu)$p.value, S))
+
+      }
+    } else {
+      ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+      if (length(ProcessedData[[1]]) < 30)
+        warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+      suppressWarnings(Pval <- FormatPval(ZTest(ProcessedData[[1]] - ProcessedData[[2]], Mu = 0)$p.value, S))
 
     }
 
@@ -94,15 +102,15 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
     Pval <- FormatPval(t.test(X ~ Y, var.equal = FALSE)$p.value, S)
 
   } else if (Test == "wilcoxon") {
-    Pval <- FormatPval(wilcox.test(X ~ Y)$p.value, S)
-
-  } else if (Test == "signed-wilcoxon") {
     if (any(Y != Y[1])) { # Multivariate
-      stop("")
+      Pval <- FormatPval(wilcox.test(X ~ Y)$p.value, S)
     } else { # Univariate
       Pval <- FormatPval(wilcox.test(X, mu = Mu)$p.value, S)
-
     }
+
+  } else if (Test == "signed-wilcoxon") {
+    ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+    Pval <- FormatPval(wilcox.test(ProcessedData[[1]] - ProcessedData[[2]], mu = 0)$p.value, S)
 
   } else if (Test == "anova") {
     if (ShapiroTest(X, Y, NameX) < .05)

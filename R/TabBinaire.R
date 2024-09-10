@@ -71,7 +71,7 @@ TabBinaire <- function(.Data,
   VarBinaire <- VerifArgs(VarBinaire, NomCateg, x)
   NomLabel <- VerifArgs(NomLabel, VarBinaire, x)
   Poids <- VerifArgs(Poids, x, VarBinaire, .Data)
-  ConfInter <- VerifArgs(ConfInter, Poids, "binary")
+  ConfInter <- VerifArgs(ConfInter, Poids, "binaire")
   ConfLevel <- VerifArgs(ConfLevel, x)
   PMissing <- VerifArgs(PMissing)
   ChifPval <- VerifArgs(ChifPval)

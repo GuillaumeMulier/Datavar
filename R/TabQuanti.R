@@ -149,13 +149,26 @@ TabQuanti <- function(.Data,
     if (!is.null(Paired)) { # Add the difference of means when paired data and confidence interval is asked
       ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
       Difference <- ProcessedData[[1]] - ProcessedData[[2]]
+      N <- sum(!is.na(Difference))
+      MoyD <- mean(Difference, na.rm = TRUE)
+      SdD <- sqrt(var(Difference, na.rm = TRUE))
       if (ConfInter == "student") {
         if (ShapiroTest(Difference, NULL, rlang::quo_name(x)) < .05)
-          message(Information(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", the Shapiro-wilk test shows some departure from normal assumption. Consider using another confidence interval.")))
-        N <- sum(!is.na(Difference))
-        MoyD <- mean(Difference, na.rm = TRUE)
-        SdD <- sqrt(var(Difference, na.rm = TRUE))
+          message(Attention(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", the Shapiro-wilk test shows some departure from normal assumption. Consider using another confidence interval.")))
         IntervalleConfiance <- MoyD + qt(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2), df = N - 1) * SdD / sqrt(N)
+        Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
+        Statistics[[2]] <- c(Statistics[[2]], "")
+      } else if (ConfInter == "normal") {
+        if (N < 30)
+          warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+        IntervalleConfiance <- MoyD + qnorm(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2)) * SdD / sqrt(N)
+        Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
+        Statistics[[2]] <- c(Statistics[[2]], "")
+      } else if (ConfInter == "bootstrap") {
+        MeanBoot <- function(Donnees, Indices) mean(Donnees[Indices])
+        set.seed(121221)
+        on.exit(set.seed(NULL), add = TRUE)
+        IntervalleConfiance <- quantile(boot::boot(Difference[!is.na(Difference)], MeanBoot, R = 5000)$t[, 1], probs = c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2))
         Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
         Statistics[[2]] <- c(Statistics[[2]], "")
       }
@@ -220,7 +233,7 @@ TabQuanti <- function(.Data,
   }
 
   class(Tableau) <- c("tab_description", class(Tableau))
-  attr(Tableau, "Grapher") <- Grapher & is.null(y)
+  attr(Tableau, "Grapher") <- Grapher & (is.null(y) | !is.null(Paired))
   return(Tableau)
 
 }
