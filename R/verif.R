@@ -106,13 +106,49 @@ VerifArgs <- function(...) {
                   }
                   return(VarQuali)
                 },
-                ConfInterP = ,
+                ConfInterP = function(ConfInter, Poids, TypeVar) {
+                  if (TypeVar == "binaire") {
+                    ConfInter <- match.arg(ConfInter, c("none", "normal", "newcombe"))
+                    if (all(Poids %in% c(0, 1))) {
+                      return(ConfInter)
+                    } else {
+                      if (ConfInter == "none") {
+                        return("none")
+                      } else {
+                        if (ConfInter != "normal")
+                          message(Information("With weights, only normal confidence interval is supported."))
+                        return("normal")
+                      }
+                    }
+                  } else if (TypeVar == "quali") {
+                    ConfInter <- match.arg(ConfInter, c("none", "bonferroni-type", "scheffe-type"))
+                    if (all(Poids %in% c(0, 1))) {
+                      return(ConfInter)
+                    } else {
+                      message(Information("With weights, no confidence interval is supported for qualitative variabl."))
+                      return("none")
+                    }
+                  }
+                },
                 ConfInter = function(ConfInter, Poids, TypeVar) {
                   if (TypeVar == "quanti") {
                     ConfInter <- match.arg(ConfInter, c("none", "student", "normal", "bootstrap"))
                     return(ConfInter)
                   } else if (TypeVar == "binaire") {
-                    ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys", "newcombe"))
+                    ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
+                    if (all(Poids %in% c(0, 1))) {
+                      return(ConfInter)
+                    } else {
+                      if (ConfInter == "none") {
+                        return("none")
+                      } else {
+                        if (ConfInter != "normal")
+                          message(Information("With weights, only normal confidence interval is supported."))
+                        return("normal")
+                      }
+                    }
+                  } else if (TypeVar == "quali") {
+                    ConfInter <- match.arg(ConfInter, c("none", "normal", "exact", "jeffreys"))
                     if (all(Poids %in% c(0, 1))) {
                       return(ConfInter)
                     } else {
@@ -261,6 +297,9 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids, Apparie = 
       } else if (TypeVar == "binaire") {
         if (Test %nin% c("none", "ztest", "mcnemar"))
           stop(paste0("Test unadapted to a paired binary variable: ", PrintVar(x), ". Choose one of none, ztest or mcnemar"), call. = FALSE)
+      } else if (TypeVar == "quali") {
+        if (Test %nin% c("none", "mcnemar"))
+          stop(paste0("Test unadapted to a paired categorical variable: ", PrintVar(x), ". Choose one of none or mcnemar"), call. = FALSE)
       }
     } else { # Non paired/matched data
       if (TypeVar == "binaire") {

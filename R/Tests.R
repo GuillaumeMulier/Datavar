@@ -124,14 +124,23 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
 
   } else if (Test == "mcnemar") {
     ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
-    TableauContingence <- table(factor(ProcessedData[[1]], levels = c(0, 1)), factor(ProcessedData[[2]], levels = c(0, 1)))
-    if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 5) {
-      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = FALSE)$p.value, S))
-    } else if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 3) {
-      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+    if (length(unique(X)) == 2) {
+      TableauContingence <- table(factor(ProcessedData[[1]], levels = c(0, 1)), factor(ProcessedData[[2]], levels = c(0, 1)))
+      if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 5) {
+        suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = FALSE)$p.value, S))
+      } else if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 3) {
+        suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+      } else {
+        warning(Attention(paste0("MacNemar test between ", PrintVar(NameX), " and ", PrintVar(NameY), " is outside the assumptions of the test.")), immediate. = TRUE, call. = FALSE)
+        suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+      }
     } else {
-      warning(Attention(paste0("MacNemar test between ", PrintVar(NameX), " and ", PrintVar(NameY), " is outside the assumptions of the test.")), immediate. = TRUE, call. = FALSE)
-      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+      TableauContingence <- table(ProcessedData[[1]], ProcessedData[[2]])
+      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence)$p.value, S))
+      if (is.na(Pval)) {
+        message(Attention(paste0("For variable\"", PrintVar(NameX), "\", discordant pairs with both 0 counts so McNemar test fails.")))
+        Pval <- ""
+      }
     }
 
   } else {
@@ -318,3 +327,40 @@ ProcessPairedQuanti <- function(VarQuanti, VarCroise, Paired, .Data, NameX) {
 
 }
 
+
+#' Process categorical paired data
+#'
+#' @param VarQuali Categorical variable of interest
+#' @param VarCroise Grouping variable
+#' @param Paired Name of column that identify pairs
+#' @param .Data The data.frame containing Paired
+#' @param NameX Name of quantitative variable to display
+#'
+#' @return list of 2 variables: the part of VarQuali in each group with the same place relative to the pairs
+#'
+ProcessPairedQuali <- function(VarQuali, VarCroise, Paired, .Data, NameX) {
+
+  # Save levels of variable
+  NiveauxVar <- levels(VarQuali)
+  VarQuali <- as.numeric(VarQuali)
+
+  # Reconstruct the 2 samples in the right order to perform the test
+  IdPaires <- .Data[[Paired]]
+  GroupesPaires <- tapply(IdPaires, VarCroise, \(x) x)
+  for (n in names(GroupesPaires)) {
+    if (any(table(GroupesPaires[[n]]) > 1)) {
+      message(Attention(paste0("For variable \"", PrintVar(NameX), "\", there are multiple observations of the same cluster in group ", PrintArg(n), ". As pairs will be formed, there will be loses in the sample.")))
+    }
+  }
+  IdCommuns <- intersect(GroupesPaires[[1]], GroupesPaires[[2]])
+  ValeursCroisees <- unique(VarCroise[!is.na(VarCroise)])
+  Var1 <- vapply(IdCommuns, \(x) VarQuali[IdPaires == x & VarCroise == ValeursCroisees[1]][1], numeric(1)) # Only take the first to avoid multiple correspondances
+  Var2 <- vapply(IdCommuns, \(x) VarQuali[IdPaires == x & VarCroise == ValeursCroisees[2]][1], numeric(1))
+
+  # Reconstruct the qualitative variable
+  Var1 <- factor(Var1, levels = seq_along(NiveauxVar), labels = NiveauxVar)
+  Var2 <- factor(Var2, levels = seq_along(NiveauxVar), labels = NiveauxVar)
+
+  return(list(Var1, Var2))
+
+}

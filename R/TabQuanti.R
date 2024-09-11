@@ -75,6 +75,7 @@ TabQuanti <- function(.Data,
   ConfLevel <- VerifArgs(ConfLevel, x)
   HelperN <- if (all(Poids %in% c(0, 1))) "%i" else "%.2f" # Helper for formatting of N
   Mode <- VerifArgs(Mode, x, Langue, Prec, PMissing, HelperN)
+  ChifPval <- VerifArgs(ChifPval)
 
   if (is.null(y)) { # Univariate description
 
@@ -132,7 +133,6 @@ TabQuanti <- function(.Data,
     # Verifications on statistical test and paired data
     if (!is.null(Paired) & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
     Test <- VerifTest(Test, "quanti", NClasses, VarQuanti, y, x, Poids, !is.null(Paired))
-    ChifPval <- VerifArgs(ChifPval)
 
     # Store statistics and labels
     Statistics <- tapply(seq_along(VarQuanti), VarCroise,

@@ -25,6 +25,7 @@
 #' @param Ordonnee If FALSE, displays the classes of x in decreasing count order. If TRUE, displays in the original order.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Not usefull, if TRUE will delete unused column 'Pvalue'.
+#' @param Paired NULL if data are not paired/matched, else the name of the pairing variable as character (used only for bivariate analysis).
 #'
 #' @details
 #' The standardized mean differences are computed accordingly to Yang and Dalton (2012).
@@ -37,6 +38,7 @@
 #'
 #' @references
 #' Yang, D., & Dalton, J. E. (2012, April). A unified approach to measuring the effect size between two groups using SAS. In SAS global forum (Vol. 335, pp. 1-6).
+#' Fagerland MW, Lydersen S, Laake P (2017) Statistical Analysis of Contingency Tables. Chapman & Hall/CRC, Boca Raton, FL
 #'
 #' @examples
 #' TabQuali(mtcars, cyl)
@@ -51,7 +53,7 @@ TabQuali <- function(.Data,
                      Prec = 0,
                      PMissing = NULL,
                      NomVariable = NULL,
-                     ConfInter = c("none", "normal", "exact", "jeffreys"),
+                     ConfInter = "none",
                      ConfLevel = .95,
                      Poids = NULL,
                      Test = "none",
@@ -62,7 +64,8 @@ TabQuali <- function(.Data,
                      Langue = "eng",
                      Ordonnee = FALSE,
                      Grapher = FALSE,
-                     Simplif = TRUE) {
+                     Simplif = TRUE,
+                     Paired = NULL) {
 
   # Interest variables defused so that it is possible to give unquoted arguments
   x <- rlang::enexpr(x)
@@ -76,11 +79,19 @@ TabQuali <- function(.Data,
   Prec <- VerifArgs(Prec, x)
   VarQuali <- VerifArgs(VarQuali, Ordonnee, x)
   Poids <- VerifArgs(Poids, x, VarQuali, .Data)
-  ConfInter <- VerifArgs(ConfInter, Poids)
+  if (grepl("/", ConfInter)) { # ConfInterP for paired difference and ConfInter for proportions in each group
+    ConfInterP <- gsub("^.*/(.*)$", "\\1", ConfInter)
+    ConfInter <- gsub("^(.*)/.*$", "\\1", ConfInter)
+  } else {
+    ConfInterP <- ConfInter
+  }
+  ConfInter <- VerifArgs(ConfInter, Poids, "quali")
+  ConfInterP <- VerifArgs(ConfInterP, Poids, "quali")
   ConfLevel <- VerifArgs(ConfLevel, x)
   NomVariable <- VerifArgs(NomVariable, x)
   PMissing <- VerifArgs(PMissing)
   HelperN <- if (all(Poids %in% c(0, 1))) "%i" else "%.2f" # Helper for formatting of N
+  ChifPval <- VerifArgs(ChifPval)
 
   if (is.null(y)) { # Univariate description
 
@@ -153,8 +164,8 @@ TabQuali <- function(.Data,
     NClasses <- length(unique(VarCroise))
 
     # Verifications on statistical test
-    Test <- VerifTest(Test, "quali", NClasses, VarQuali, y, x, Poids)
-    ChifPval <- VerifArgs(ChifPval)
+    if (!is.null(Paired) & NClasses != 2) stop(paste0("For variable ", PrintVar(rlang::quo_name(x)), ", there is not 2 groups so paired analysis is not possible."), call. = FALSE)
+    Test <- VerifTest(Test, "quali", NClasses, VarQuanti, y, x, Poids, !is.null(Paired))
 
     # Statistics
     X <- dplyr::count(data.frame(VarQuali, VarCroise, Poids), VarQuali, VarCroise, wt = Poids, name = "Freq") |>
@@ -201,11 +212,51 @@ TabQuali <- function(.Data,
             100 * qbeta((1 + ConfLevel) / 2, .X$Freq + .5, .N - .X$Freq + .5)))
         }
         Pourcent <- do.call("sprintf", Pourcent)
+
         Pourcent <- c(Pourcent, .M)
         return(Pourcent)
       }
     )
-    if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval), rep("", nlevels(VarQuali)))
+
+    # Add marginal differences if needed
+    if (!is.null(Paired) & ConfInterP != "none") {
+      ProcessedData <- ProcessPairedQuali(VarQuali, VarCroise, Paired, .Data, rlang::quo_name(x))
+      TableauContingence <- table(ProcessedData[[1]], ProcessedData[[2]])
+      if (ConfInterP == "bonferroni-type") { # Bonferroni like confidence intervals
+        NbCateg <- ncol(TableauContingence)
+        Nip <- rowSums(TableauContingence)
+        Npi <- colSums(TableauContingence)
+        NTot <- sum(TableauContingence)
+        DeltaMarg <- (Nip - Npi) / NTot # Marginal differences
+        ValeurCrit <- qchisq(1 - (1 - ConfLevel) / NbCateg, 1)
+        # Constants for quadratic equation
+        A <- 1 + ValeurCrit / NTot
+        B <- -2 * DeltaMarg
+        C <- DeltaMarg ** 2 - ValeurCrit * (Nip + Npi - 2 * diag(TableauContingence)) / NTot ** 2
+        L <- rep(-1, NbCateg)
+        U <- rep(1, NbCateg)
+        L[(B ** 2 - 4 * A * C) > 0] <- ((-B - sqrt(B ** 2 - 4 * A * C)) / (2 * A))[(B ** 2 - 4 * A * C) > 0]
+        U[(B ** 2 - 4 * A * C) > 0] <- ((-B + sqrt(B ** 2 - 4 * A * C)) / (2 * A))[(B ** 2 - 4 * A * C) > 0]
+        IntervalleConfiance <- sprintf("%.3f [%.3f;%.3f]", DeltaMarg, L, U)
+        PourcentsCrois <- do.call("rbind", lapply(seq_len(nrow(PourcentsCrois) - 1), \(x) rbind(PourcentsCrois[x, ], c(IntervalleConfiance[x], "")))) |>
+          rbind(PourcentsCrois[nrow(PourcentsCrois), ])
+      } else if (ConfInterP == "scheffe-type") {
+        ValeurCrit <- qchisq(ConfLevel, NbCateg - 1)
+        # Constants for quadratic equation
+        A <- 1 + ValeurCrit / NTot
+        B <- -2 * DeltaMarg
+        C <- DeltaMarg ** 2 - ValeurCrit * (Nip + Npi - 2 * diag(TableauContingence)) / NTot ** 2
+        L <- rep(-1, NbCateg)
+        U <- rep(1, NbCateg)
+        L[(B ** 2 - 4 * A * C) > 0] <- ((-B - sqrt(B ** 2 - 4 * A * C)) / (2 * A))[(B ** 2 - 4 * A * C) > 0]
+        U[(B ** 2 - 4 * A * C) > 0] <- ((-B + sqrt(B ** 2 - 4 * A * C)) / (2 * A))[(B ** 2 - 4 * A * C) > 0]
+        IntervalleConfiance <- sprintf("%.3f [%.3f;%.3f]", DeltaMarg, L, U)
+        PourcentsCrois <- do.call("rbind", lapply(seq_len(nrow(PourcentsCrois) - 1), \(x) rbind(PourcentsCrois[x, ], c(IntervalleConfiance[x], "")))) |>
+          rbind(PourcentsCrois[nrow(PourcentsCrois), ])
+      }
+    }
+
+    if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), rep("", nrow(PourcentsCroise) - 1))
     if (SMD) {
       if (NClasses != 2) {
         stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
@@ -218,8 +269,13 @@ TabQuali <- function(.Data,
     }
 
     # Table of results
+    Labelliseur <- paste0("  ", levels(VarQuali))
+    if (!is.null(Paired) & ConfInterP != "none") {
+      ComblerTrou <- if (Langue == "fr") paste0("  Différence marginale, IC", round(100 * ConfLevel), "%") else paste0("  Marginal difference, CI", round(100 * ConfLevel), "%")
+      Labelliseur <- unlist(lapply(seq_along(Labelliseur), \(x) c(Labelliseur[x], ComblerTrou)))
+    }
     Tableau <- data.frame(var = paste0(NomVariable, " (n, %)"),
-                          eff = c(paste0("  ", levels(VarQuali)),
+                          eff = c(Labelliseur,
                                   ifelse(Langue == "fr", "    Manquants", ifelse(Langue == "eng", "    Missings", "    ..."))),
                           stringsAsFactors = FALSE)
     Tableau <- cbind(Tableau, as.matrix(PourcentsCrois))
