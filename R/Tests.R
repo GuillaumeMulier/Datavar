@@ -123,8 +123,8 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
     Pval <- FormatPval(kruskal.test(X ~ Y)$p.value, S)
 
   } else if (Test == "mcnemar") {
-    ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
     if (length(unique(X)) == 2) {
+      ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
       TableauContingence <- table(factor(ProcessedData[[1]], levels = c(0, 1)), factor(ProcessedData[[2]], levels = c(0, 1)))
       if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 5) {
         suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = FALSE)$p.value, S))
@@ -135,12 +135,9 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
         suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
       }
     } else {
+      ProcessedData <- ProcessPairedQuali(X, Y, IdPairs, .Data, NameX)
       TableauContingence <- table(ProcessedData[[1]], ProcessedData[[2]])
-      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence)$p.value, S))
-      if (is.na(Pval)) {
-        message(Attention(paste0("For variable\"", PrintVar(NameX), "\", discordant pairs with both 0 counts so McNemar test fails.")))
-        Pval <- ""
-      }
+      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence)$p.value, S, NameX))
     }
 
   } else {

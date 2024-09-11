@@ -3,7 +3,16 @@
 
 
 #' Formatting PValue
-FormatPval <- function(PVal, S) if (PVal < 10 ** (-S)) paste0("<0.", paste(rep("0", S - 1), collapse = ""), "1") else sprintf(paste0("%.", S, "f"), PVal)
+FormatPval <- function(PVal, S, NameX = NULL) {
+  if (is.na(PVal)) {
+    message(Attention(paste0("For variable\"", PrintVar(NameX), "\", discordant pairs with both 0 counts so McNemar test fails.")))
+    return("")
+  } else if (PVal < 10 ** (-S)) {
+    return(paste0("<0.", paste(rep("0", S - 1), collapse = ""), "1"))
+  } else {
+    return(sprintf(paste0("%.", S, "f"), PVal))
+  }
+}
 
 
 #' Get the 1st quartile

@@ -10,6 +10,7 @@
 #' @param SMD Boolean to indicate if you want standardized mean differences. Of note, for weighted analysis, only SMD are available and no test.
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Boolean. If TRUE (default value) the table will be simplified to remove number of missing data if there aren't any.
+#' @param Paired NULL if data are not paired/matched, else the name of the pairing variable as character (used only for bivariate analysis).
 #'
 #' @importFrom rlang !!
 VarDescr <- function(.Data,
@@ -21,7 +22,8 @@ VarDescr <- function(.Data,
                      SMD = FALSE,
                      Simplif = TRUE,
                      Langue,
-                     Grapher = FALSE) {
+                     Grapher = FALSE,
+                     Paired = NULL) {
 
   x <- rlang::parse_expr(LigneDatavar[["var"]])
 
@@ -35,7 +37,10 @@ VarDescr <- function(.Data,
       Mode = if (!is.na(LigneDatavar[["mode"]])) as.character(LigneDatavar[["mode"]]) else "mediqrg",
       Test = if (!is.na(LigneDatavar[["test"]])) as.character(LigneDatavar[["test"]]) else "none",
       Mu0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(LigneDatavar[["mu0"]]) else NULL,
-      ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2
+      ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
+      ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
+      ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95,
+      Paired = Paired
     )
   } else if (LigneDatavar[["type"]] == "binary") {
     Tableau <- TabBinaire(
@@ -49,7 +54,8 @@ VarDescr <- function(.Data,
       P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
-      ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95
+      ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95,
+      Paired = Paired
     )
   } else if (LigneDatavar[["type"]] == "quali") {
     Tableau <- TabQuali(
@@ -63,7 +69,8 @@ VarDescr <- function(.Data,
       P0 = if (!is.na(LigneDatavar[["mu0"]])) as.numeric(as.numeric(strsplit(LigneDatavar[["mu0"]], ";")[[1]])) else NULL,
       ChifPval = if (!is.na(LigneDatavar[["chif_pval"]])) as.numeric(LigneDatavar[["chif_pval"]]) else 2,
       ConfInter = if (!is.na(LigneDatavar[["conf_inter"]])) as.character(LigneDatavar[["conf_inter"]]) else "none",
-      ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95
+      ConfLevel = if (!is.na(LigneDatavar[["conf_level"]])) as.numeric(LigneDatavar[["conf_level"]]) else .95,
+      Paired = Paired
     )
   }
 
@@ -94,6 +101,7 @@ VarDescr <- function(.Data,
 #' @param Grapher Boolean if you want to graph the distribution in univariate case.
 #' @param Simplif Not usefull, if TRUE will delete unused column 'Pvalue'.
 #' @param Comparer TRUE won't alterate the datavar, but FALSE will ensure that no test will be performed even if supplied in the datavar. In case of crossed description. Of note, if no test is supplied in the datavar, even with Comparer = TRUE, there will be no comparison made.
+#' @param Paired NULL if data are not paired/matched, else the name of the pairing variable as character (used only for bivariate analysis).
 #'
 #' @export
 #'
@@ -120,7 +128,8 @@ Description <- function(.Data,
                         Langue = "eng",
                         Grapher = FALSE,
                         Simplif = TRUE,
-                        Comparer = FALSE) {
+                        Comparer = FALSE,
+                        Paired = TRUE) {
 
   y <- rlang::enexpr(y)
   Poids <- rlang::enexpr(Poids)
@@ -150,7 +159,8 @@ Description <- function(.Data,
                       Poids = Poids,
                       SMD = SMD,
                       Grapher = Grapher,
-                      Simplif = Simplif)
+                      Simplif = Simplif,
+                      Paired = Paired)
       if (Comparer) StockMeta$tests <- rbind(StockMeta$tests, data.frame(var = Tab[1, 1], test = Ligne[["test"]], type = Ligne[["type"]]))
       StockMeta$labels <- rbind(StockMeta$labels, data.frame(var = var, label = Tab[1, 1], type = Ligne[["type"]]))
       if (SMD & !is.null(y)) StockMeta$smds <- rbind(StockMeta$smds, data.frame(var = var, label = Tab[1, 1], type = Ligne[["type"]], smd = attr(Tab, "standardized_mean_difference")))

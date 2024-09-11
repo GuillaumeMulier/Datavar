@@ -256,7 +256,7 @@ TabQuali <- function(.Data,
       }
     }
 
-    if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), rep("", nrow(PourcentsCroise) - 1))
+    if (Test != "none") Pval <- c(MakeTest(VarQuali, VarCroise, Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), rep("", nrow(PourcentsCrois) - 1))
     if (SMD) {
       if (NClasses != 2) {
         stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
