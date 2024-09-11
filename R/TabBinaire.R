@@ -32,6 +32,8 @@
 #'
 #' @seealso [Description()]
 #'
+#' @references Fagerland MW, Lydersen S, Laake P. Recommended tests and confidence intervals for paired binomial proportions. Stat Med. 2014 Jul 20;33(16):2850-75. doi: 10.1002/sim.6148.
+#'
 #' @examples
 #' TabBinaire(mtcars, am)
 #' TabBinaire(mtcars, am, Test = "binomial")
@@ -186,7 +188,8 @@ TabBinaire <- function(.Data,
         100 * qbeta((1 + ConfLevel) / 2, X + .5, N - X + .5)))
     }
     Pourcent <- do.call("sprintf", Pourcent)
-    if (Test != "none") Pval <- c(MakeTest(VarBinaire, VarCroise, if (Test == "ztest") "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired), "")
+    if (Test != "none") Pval <- c(MakeTest(VarBinaire, VarCroise, if (Test == "ztest" & is.null(Paired)) "chisq" else Test, rlang::quo_name(x), rlang::quo_name(y), ChifPval, Apparie = !is.null(Paired), IdPairs = Paired),
+                                  "", if (!is.null(Paired) & ConfInterP != "none") "" else NULL)
     if (SMD) {
       if (NClasses != 2) {
         stop(paste0("For variable \"", PrintVar(rlang::quo_name(x)), "\", there aren't 2 groups and thus pairwise SMDs aren't yet supported. Please set argument \"", PrintArg("SMD"), "\" to FALSE."), call. = FALSE)
@@ -201,27 +204,32 @@ TabBinaire <- function(.Data,
 
     # Adding paired proportions difference if needed
     if (!is.null(Paired) & ConfInterP != "none") {
-      ProcessedData <- ProcessPairedQuanti(VarBinaire, VarCroise, Paired, .Data, NameX)
-      if (ConfInter == "normal") {
+      ProcessedData <- ProcessPairedQuanti(VarBinaire, VarCroise, Paired, .Data, rlang::quo_name(x))
+      if (ConfInterP == "normal") {
         Difference <- ProcessedData[[1]] - ProcessedData[[2]]
         N <- sum(!is.na(Difference))
         MoyD <- mean(Difference, na.rm = TRUE)
         SdD <- sqrt(var(Difference, na.rm = TRUE))
         if (N < 30)
-          warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
+          warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(rlang::quo_name(x)), "\".")), immediate. = TRUE, call. = FALSE)
         IntervalleConfiance <- MoyD + qnorm(c((1 - ConfLevel) / 2, (1 + ConfLevel) / 2)) * SdD / sqrt(N)
-        IntervalleConfiance[1] <- max(IntervalleConfiance[1], 0)
+        IntervalleConfiance[1] <- max(IntervalleConfiance[1], -1)
         IntervalleConfiance[2] <- min(IntervalleConfiance[2], 1)
-        Statistics[[1]] <- c(Statistics[[1]], sprintf(paste0("N=%i, ", Prec, " [", Prec, ";", Prec, "]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2]))
-        Statistics[[2]] <- c(Statistics[[2]], "")
+        IntervalleConfiance <- sprintf(paste0("N=%i, %.3f [%.3f;%.3f]"), N, MoyD, IntervalleConfiance[1], IntervalleConfiance[2])
+      } else if (ConfInterP == "newcombe") {
+        IntervalleConfiance <- MoverWilsonCI(table(factor(ProcessedData[[1]], levels = c(0, 1)), factor(ProcessedData[[2]], levels = c(0, 1))), 1 - ConfLevel)
+        IntervalleConfiance <- sprintf(paste0("N=%i, %.3f [%.3f;%.3f]"), IntervalleConfiance[1], IntervalleConfiance[2], IntervalleConfiance[3], IntervalleConfiance[4])
       }
     }
 
     # Table of results
     Tableau <- data.frame(var = NomLabel,
-                          eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ..."))),
+                          eff = c("n, %", ifelse(Langue == "fr", "  Manquants", ifelse(Langue == "eng", "  Missings", "  ...")),
+                                  if (!is.null(Paired) & ConfInterP != "none") ifelse(Langue == "fr", paste0("  Différence de proportion, IC", round(100 * ConfLevel), "%"),
+                                                                                      paste0("  Proportion difference, CI", round(100 * ConfLevel), "%")) else NULL),
                           stringsAsFactors = FALSE)
-    Tableau <- cbind(Tableau, matrix(c(Pourcent, M), nrow = 2, byrow = TRUE))
+    Tableau <- cbind(Tableau, matrix(c(Pourcent, M, if (!is.null(Paired) & ConfInterP != "none") c(IntervalleConfiance, "") else NULL),
+                                     nrow = if (!is.null(Paired) & ConfInterP != "none") 3 else 2, byrow = TRUE))
     attr(Tableau, "crossed") <- "multivariate"
     if (Test != "none") Tableau$pval <- Pval
     if (Grapher) message(Information("Graphs aren't supported in multivariate description."))

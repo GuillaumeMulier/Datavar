@@ -259,7 +259,7 @@ VerifTest <- function(Test, TypeVar, NClasses, Variable, y, x, Poids, Apparie = 
         if (Test %nin% c("none", "student", "ztest", "signed-wilcoxon"))
           stop(paste0("Test unadapted to a paired quantitative variable: ", PrintVar(x), ". Choose one of none, ztest, signed-wilcoxon or student."), call. = FALSE)
       } else if (TypeVar == "binaire") {
-        if (Test %nin% c("none"))
+        if (Test %nin% c("none", "ztest", "mcnemar"))
           stop(paste0("Test unadapted to a paired binary variable: ", PrintVar(x), ". Choose one of none, ztest or mcnemar"), call. = FALSE)
       }
     } else { # Non paired/matched data

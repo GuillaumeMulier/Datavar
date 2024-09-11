@@ -56,7 +56,7 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
 
       }
     } else {
-      ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+      ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
       if (length(ProcessedData[[1]]) < 30)
         warning(Attention(paste0("Less than 30 observations, ensure that assumptions are checked for variable \"", PrintVar(NameX), "\".")), immediate. = TRUE, call. = FALSE)
       suppressWarnings(Pval <- FormatPval(ZTest(ProcessedData[[1]] - ProcessedData[[2]], Mu = 0)$p.value, S))
@@ -86,7 +86,7 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
 
       }
     } else { # Paired test
-      ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+      ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
       if (ShapiroTest(ProcessedData[[1]] - ProcessedData[[2]], NULL, NameX) < .05) {
         message(Information(paste0("For variable \"", PrintVar(NameX), "\", the Shapiro-wilk test shows some departure from normal assumption for the difference of paired data. Student's T-test is robust to that departure and you may check with QQplot for example that it is not that bad to perform the test.")))
       }
@@ -109,7 +109,7 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
     }
 
   } else if (Test == "signed-wilcoxon") {
-    ProcessedData <- ProcessPairedQuanti(VarQuanti, VarCroise, Paired, .Data, NameX)
+    ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
     Pval <- FormatPval(wilcox.test(ProcessedData[[1]] - ProcessedData[[2]], mu = 0)$p.value, S)
 
   } else if (Test == "anova") {
@@ -121,6 +121,18 @@ MakeTest <- function(X, Y, Test, NameX, NameY, S, Mu = 0, Apparie = FALSE, IdPai
 
   } else if (Test == "kruskal-wallis") {
     Pval <- FormatPval(kruskal.test(X ~ Y)$p.value, S)
+
+  } else if (Test == "mcnemar") {
+    ProcessedData <- ProcessPairedQuanti(X, Y, IdPairs, .Data, NameX)
+    TableauContingence <- table(factor(ProcessedData[[1]], levels = c(0, 1)), factor(ProcessedData[[2]], levels = c(0, 1)))
+    if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 5) {
+      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = FALSE)$p.value, S))
+    } else if (((TableauContingence[1, 2] + TableauContingence[2, 1]) / 2) >= 3) {
+      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+    } else {
+      warning(Attention(paste0("MacNemar test between ", PrintVar(NameX), " and ", PrintVar(NameY), " is outside the assumptions of the test.")), immediate. = TRUE, call. = FALSE)
+      suppressWarnings(Pval <- FormatPval(mcnemar.test(TableauContingence, correct = TRUE)$p.value, S))
+    }
 
   } else {
     stop("Safety stop.")

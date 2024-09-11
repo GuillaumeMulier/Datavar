@@ -81,6 +81,34 @@ WeightedQuantile <- function(x, w = rep(1, length(x)), q = .5) {
 
 }
 
+#' Newcombe square and add confidence interval
+#' @references Fagerland MW, Lydersen S, Laake P. Recommended tests and confidence intervals for paired binomial proportions. Stat Med. 2014 Jul 20;33(16):2850-75. doi: 10.1002/sim.6148.
+MoverWilsonCI <- function(Tab, Alpha = .05) {
+  if (any(dim(Tab) != c(2, 2))) {
+    stop("Il y a plus de 2 modalités")
+  }
+  N <- as.numeric(sum(Tab))
+  Delta <- (Tab[1, 2] - Tab[2, 1]) / N
+  N1p <- as.numeric(Tab[1, 1] + Tab[1, 2])
+  N2p <- as.numeric(Tab[2, 1] + Tab[2, 2])
+  Np1 <- as.numeric(Tab[1, 1] + Tab[2, 1])
+  Np2 <- as.numeric(Tab[1, 2] + Tab[2, 2])
+  ValCrit <- qnorm(1 - Alpha / 2)
+  WilsonP1p <- (2 * N1p + ValCrit ** 2 + c(-1, 1) * ValCrit * sqrt(ValCrit ** 2 + 4 * N1p * (1 - N1p / N))) / (2 * (N + ValCrit ** 2))
+  WilsonPp1 <- (2 * Np1 + ValCrit ** 2 + c(-1, 1) * ValCrit * sqrt(ValCrit ** 2 + 4 * Np1 * (1 - Np1 / N))) / (2 * (N + ValCrit ** 2))
+  A <- Tab[1, 1] * Tab[2, 2] - Tab[1, 2] * Tab[2, 1]
+  if (A < 0) {
+    Phi <- A / sqrt(N1p * N2p * Np1 * Np2)
+  } else if (A <= (N / 2)) {
+    Phi <- 0
+  } else {
+    Phi <- (A - N / 2) / sqrt(N1p * N2p * Np1 * Np2)
+  }
+  Lower <- Delta - sqrt((N1p / N - WilsonP1p[1]) ** 2 + (WilsonPp1[2] - Np1 / N) ** 2 - 2 * Phi * (N1p / N - WilsonP1p[1]) * (WilsonPp1[2] - Np1 / N))
+  Upper <- Delta + sqrt((Np1 / N - WilsonPp1[1]) ** 2 + (WilsonP1p[2] - N1p / N) ** 2 - 2 * Phi * (Np1 / N - WilsonPp1[1]) * (WilsonP1p[2] - N1p / N))
+  return(c("N" = N, "delta" = -Delta, "lower" = -Upper, "upper" = -Lower))
+}
+
 
 #' Print variable in message
 PrintVar <- function(x) cli::combine_ansi_styles(cli::style_underline, cli::bg_br_red, cli::col_black)(x)
