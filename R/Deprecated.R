@@ -430,6 +430,7 @@ tab_binaire <- function(data,
                         label = NULL,
                         simplif = TRUE) {
 
+  x <- rlang::sym(rlang::enexpr(x))
   x <- rlang::enquo(x)
   varbinaire <- rlang::eval_tidy(x, data = data)
 
