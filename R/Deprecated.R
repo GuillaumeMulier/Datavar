@@ -466,7 +466,7 @@ tab_binaire <- function(data,
   }
   if (is.null(label)) label <- paste0(rlang::quo_name(x), ":", nomcateg)
 
-  fprec <- paste0("%.", Prec, "f")
+  fprec <- Prec
 
   if (is.null(crois)) { # Description univariée
 
