@@ -194,7 +194,7 @@ TabQuanti <- function(.Data,
     Tableau <- data.frame(var = NomVariable,
                           eff = Labelliseurs,
                           stringsAsFactors = FALSE)
-    Tableau <- suppressMessages(cbind(Tableau, dplyr::bind_cols(Statistics)))
+    Tableau <- suppressMessages(cbind(Tableau, do.call("cbind", Statistics)))
     if (Test != "none") Tableau$pval <- Pval
     if (Grapher & is.null(Paired)) {
       message(Information("Graphs aren't supported in multivariate description for unpaired data."))
